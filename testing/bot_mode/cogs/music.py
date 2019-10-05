@@ -193,12 +193,14 @@ class Music(commands.Cog):
         help='Moves a member into a different voice channel.'
     )
 
-    @commands.has_permissions(move_members=False)
-    async def move(self, ctx, member: discord.Member, channel: discord.VoiceChannel=None):
-        if member.voice is not None:
-            await member.move_to(channel)
+    async def move_command(self, ctx, member: discord.Member, channel: discord.VoiceChannel=None):
+        if ctx.author.permissions_in(ctx.channel).value & 0x01000000 == 0x01000000: #Permission check is not working (!) so temporary replacement
+            if member.voice is not None:
+                await member.move_to(channel)
+            else:
+                await ctx.send("This member is not currently connected to any voice channel.")
         else:
-            await ctx.send("This member is not currently connected to any voice channel.")
+            raise commands.MissingPermissions(missing_perms=['move_members'])
 
     @localplay.before_invoke
     @play.before_invoke
