@@ -35,8 +35,8 @@ class Admin(commands.Cog):
 
     @commands.has_permissions(manage_channels=True)
     async def createguildtextchannel(self, ctx, name: str="Text Channel", category: discord.CategoryChannel=None, position: int=None, topic: str=None, nsfw: bool=None, slowmode_delay: int=None, reason: str=None):
-        channel = await ctx.guild.create_text_channel(name=name, position=position, slowmode_delay=slowmode_delay, nsfw=nsfw, topic=topic, category=category, reason=reason)
-        await channel.send("This channel has been created!")
+        tc = await ctx.guild.create_text_channel(name=name, position=position, slowmode_delay=slowmode_delay, nsfw=nsfw, topic=topic, category=category, reason=reason)
+        await ctx.send(f"The text channel {tc.mention} has been created!")
 
     @guildcreate.command(
         name='voicechannel',
@@ -47,7 +47,8 @@ class Admin(commands.Cog):
 
     @commands.has_permissions(manage_channels=True)
     async def createguildvoicechannel(self, ctx, name: str="Voice Channel", category: discord.CategoryChannel=None, position: int=None, user_limit: int=None, bitrate: int=None, reason: str=None):
-        await ctx.guild.create_voice_channel(name=name, category=category, position=position, user_limit=user_limit, bitreason=reason)
+        vc = await ctx.guild.create_voice_channel(name=name, category=category, position=position, user_limit=user_limit, bitrate=bitrate, reason=reason)
+        await ctx.send(f"The voice channel {vc.mention} has been created!")
 
     #---------------------------------------------------------------------------------
 

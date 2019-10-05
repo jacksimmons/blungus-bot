@@ -53,12 +53,18 @@ class Music(commands.Cog):
         self.bot = bot
 
     @commands.command()
-    async def join(self, ctx, *, channel: discord.VoiceChannel):
+    async def join(self, ctx, *, channel: discord.VoiceChannel = None):
         """Joins a voice channel"""
 
-        if ctx.voice_client is not None:
-            return await ctx.voice_client.move_to(channel)
-        await channel.connect()
+        if channel is None:
+            if ctx.voice_client is not None:
+                return await ctx.voice_client.move_to(ctx.author.voice.channel)
+            await ctx.author.voice.channel.connect()
+
+        else:
+            if ctx.voice_client is not None:
+                return await ctx.voice_client.move_to(channel)
+            await channel.connect()
 
     @commands.command()
     async def localplay(self, ctx, *, query):
@@ -66,7 +72,7 @@ class Music(commands.Cog):
 
         source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(query))
         ctx.voice_client.play(source, after=lambda e: print('Player error: %s' % e) if e else None)
-        await ctx.send('Now playing: {}'.format(query))
+        await ctx.send(f'Now playing: {query}')
 
     @commands.command()
     async def play(self, ctx, *, url):
@@ -76,7 +82,7 @@ class Music(commands.Cog):
             player = await YTDLSource.from_url(url, loop=self.bot.loop)
             ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
 
-        print(ctx.voice_client.source.data)
+        #print(ctx.voice_client.source.data)
 
         if ctx.guild.get_member(self.bot.user.id).permissions_in(ctx.channel).value & 0x4000 == 0x4000:
             embed = discord.Embed(color=0xff0000, url=player.data.get('webpage_url'))
@@ -176,12 +182,23 @@ class Music(commands.Cog):
         else:
             await ctx.send("No music is currently being played.")
 
-
     @commands.command()
     async def leave(self, ctx):
         """Stops and disconnects the bot from voice"""
 
         await ctx.voice_client.disconnect()
+
+    @commands.command(
+        name='move',
+        help='Moves a member into a different voice channel.'
+    )
+
+    @commands.has_permissions(move_members=False)
+    async def move(self, ctx, member: discord.Member, channel: discord.VoiceChannel=None):
+        if member.voice is not None:
+            await member.move_to(channel)
+        else:
+            await ctx.send("This member is not currently connected to any voice channel.")
 
     @localplay.before_invoke
     @play.before_invoke
