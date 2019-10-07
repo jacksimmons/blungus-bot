@@ -104,10 +104,6 @@ class Admin(commands.Cog):
         embed = discord.Embed(color=0x00ff00)
         embed.set_author(name=f"{guild.name}", icon_url=f"{guild.icon_url}")
         embed.set_footer(text=f"Guild ID: {guild.id} | Guild Owner: {guild.owner} | Guild Owner ID: {guild.owner_id} | Shard ID: {guild.shard_id} | Chunked: {guild.chunked}", icon_url=f"{ctx.author.avatar_url}")
-
-        embed2 = discord.Embed(color=0x00ff00)
-        embed2.set_author(name=f"{guild.name} [Page 2/2]", icon_url=f"{guild.icon_url}")
-        embed2.set_footer(text=f"System Channel: {guild.system_channel} | ")
 #1
         embed.add_field(
         name="Region",
@@ -146,44 +142,35 @@ class Admin(commands.Cog):
 #8
         embed.add_field(
         name=f"AFK Channel [AFK: {int(guild.afk_timeout/60)}m]",
-        value=f"{guild.afk_channel}",
-        inline=True)
-
+        value=f"{guild.afk_channel}")
 #9
         embed.add_field(
         name="2FA Level",
-        value=f"{guild.mfa_level}",
-        inline=True)
+        value=f"{guild.mfa_level}")
 #10
         embed.add_field(
         name="Default Notifications",
-        value=f"{str(guild.default_notifications[0]).title()}",
-        inline=True)
+        value=f"{str(guild.default_notifications[0]).title()}")
 #11
         embed.add_field(
         name="Verification Level",
-        value=f"{str(guild.verification_level).title()}",
-        inline=True)
+        value=f"{str(guild.verification_level).title()}")
 #12
         embed.add_field(
         name="Explicit Content Filter",
-        value=f"{str(guild.explicit_content_filter).title()}",
-        inline=True)
+        value=f"{str(guild.explicit_content_filter).title()}")
 #13
         embed.add_field(
         name="Guild Invite Splash",
-        value=f"{guild.splash}",
-        inline=True)
+        value=f"{guild.splash}")
 #14
         embed.add_field(
         name="Extra Info",
-        value=f"System Channel: <#{guild.system_channel.id}>, Large Guild: {guild.large}, Unavailable: {guild.unavailable}",
-        inline=False)
+        value=f"System Channel: <#{guild.system_channel.id}>, Large Guild: {guild.large}, Unavailable: {guild.unavailable}")
 #before preantepenultimate 21
         embed.add_field(
         name="Guild Limits",
-        value=f"Presences Limit: {guild.max_presences}, Member Limit: {guild.max_members}",
-        inline=True)
+        value=f"Presences Limit: {guild.max_presences}, Member Limit: {guild.max_members}")
 #preantepenultimate 22
         embed.add_field(
         name="Premium Guild Features",
@@ -282,7 +269,7 @@ class Admin(commands.Cog):
     )
 
     @commands.has_permissions(ban_members=True)
-    async def ban_command(self, ctx, who: discord.Member, *, reason = None):
+    async def _ban(self, ctx, who: discord.Member, *, reason = None):
         ban = False
         if who.top_role < ctx.message.author.top_role or ctx.message.author.id == ctx.guild.owner_id:
             await ctx.guild.ban(user=who, reason=reason)
@@ -316,6 +303,8 @@ class Admin(commands.Cog):
     #    msg = await self.bot.wait_for('message', check=check)
     #    await ctx.send("Bye mom!")
     #    await ctx.guild.leave()
+
+    #@_ban.before_invoke()
 
 def setup(bot):
     bot.add_cog(Admin(bot))

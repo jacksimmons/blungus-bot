@@ -304,16 +304,24 @@ class Basic(commands.Cog):
             except StopIteration:
                 reached_end_of_user_perms = True
 
-        embed = discord.Embed(title=f'<@{user.id}>')
-        await ctx.send(f'''<@{user.id}>
-        Avatar: {user.avatar_url_as(size=4096)}
-        Name: {user}
-        ID: {user.id}
-        Bot: {user.bot}
-        Account created at: {dotw[user.created_at.weekday()-1]}, {user.created_at.day} {moty[user.created_at.month-1]} {user.created_at.year}
-        Roles [{len(user.roles)}]: {roles}
-        Permissions: {perms.title().replace("_", " ")}
-        ''')
+        embed = discord.Embed(color=0x00ff00, title=f'<@{user.id}>')
+        embed.set_author(name=f"{user}", icon_url=user.avatar_url)
+        embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.avatar_url)
+        embed.set_thumbnail(url=user.avatar_url)
+
+        embed.add_field(name="Name", value=user.name, inline=True)
+        embed.add_field(name="ID", value=user.id, inline=True)
+
+        embed.add_field(name="Account created", value=f"{dotw[user.created_at.weekday()-1]}, {user.created_at.day} {moty[user.created_at.month-1]} {user.created_at.year}", inline=True)
+        embed.add_field(name="User joined", value=f"{dotw[user.joined_at.weekday()-1]}, {user.joined_at.day} {moty[user.joined_at.month]} {user.joined_at.year}", inline=True)
+
+        embed.add_field(name="Bot", value=user.bot, inline=True)
+
+        embed.add_field(name=f"Roles [{len(user.roles)}]", value=roles, inline=False)
+
+        embed.add_field(name=f"Permissions", value=perms, inline=False)
+
+        await ctx.send(embed=embed)
 
     #---------------------------------------------------------------------------------
 

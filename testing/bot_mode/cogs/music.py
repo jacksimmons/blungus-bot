@@ -193,8 +193,9 @@ class Music(commands.Cog):
         help='Moves a member into a different voice channel.'
     )
 
-    @commands.has_permissions(move_members=True)
-    async def move_command(self, ctx, member: discord.Member, channel: discord.VoiceChannel=None):
+    @commands.has_permissions(administrator=True)
+    async def v_move(self, ctx, member: discord.Member, channel: discord.VoiceChannel=None):
+        print(ctx.guild.get_member_named("Chungus").guild_permissions.value & 0x1000000 == 0x1000000)
         if member.voice is not None:
             await member.move_to(channel)
         else:
