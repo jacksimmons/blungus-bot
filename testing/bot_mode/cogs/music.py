@@ -58,7 +58,10 @@ class Music(commands.Cog):
 
         if channel is None:
             if ctx.voice_client is not None:
-                return await ctx.voice_client.move_to(ctx.author.voice.channel)
+                if ctx.author.voice.channel is not None:
+                    return await ctx.voice_client.move_to(ctx.author.voice.channel)
+                else:
+                    return commands.CommandError("You are not currently connected to a voice channel.")
             await ctx.author.voice.channel.connect()
 
         else:
@@ -124,7 +127,7 @@ class Music(commands.Cog):
             await ctx.send("**Paused**")
 
         else:
-            await ctx.send("The music is already paused.")
+            raise commands.CommandError("The music is already paused.")
 
     @commands.command()
     async def resume(self, ctx):
@@ -137,7 +140,7 @@ class Music(commands.Cog):
                 await play_message.edit(content="**Now Playing**")
             await ctx.send("**Resumed**")
         else:
-            await ctx.send("The music is not currently paused.")
+            raise commands.CommandError("The music is not currently paused.")
 
     @commands.command()
     async def volume(self, ctx, volume: int):
@@ -146,11 +149,16 @@ class Music(commands.Cog):
         if ctx.voice_client is None:
             return await ctx.send("Not connected to a voice channel.")
 
-        ctx.voice_client.source.volume = volume / 100
-        if volume < 200:
+        if 0 < volume < 150:
             await ctx.send(f"Changed volume to {volume}%")
+        elif volume >= 150:
+            await ctx.send(f"Changed volume to 150% (Maximum)")
+            volume = 150
         else:
-            await ctx.send(f"Changed volume to 200% (MAX)")
+            await ctx.send(f"Changed volume to 0% (Minimum)")
+            volume = 0
+
+        ctx.voice_client.source.volume = volume / 100
 
     @commands.command()
     async def songinfo(self, ctx):
@@ -180,7 +188,7 @@ class Music(commands.Cog):
 
                 await ctx.send(embed=embed)
         else:
-            await ctx.send("No music is currently being played.")
+            raise commands.CommandError("No music is currently being played.")
 
     @commands.command()
     async def leave(self, ctx):
@@ -199,7 +207,7 @@ class Music(commands.Cog):
         if member.voice is not None:
             await member.move_to(channel)
         else:
-            await ctx.send("This member is not currently connected to any voice channel.")
+            raise commands.CommandError("This member is not currently connected to any voice channel.")
 
     @localplay.before_invoke
     @play.before_invoke

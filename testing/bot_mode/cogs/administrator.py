@@ -16,43 +16,6 @@ class Admin(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.group(
-        name='create',
-        description='Allows you to create various guild-related things.',
-        aliases=[]
-    )
-
-    async def guildcreate(self, ctx):
-        if ctx.invoked_subcommand is None:
-            raise commands.BadArgument("Invalid subcommand passed.")
-        pass
-
-    @guildcreate.command(
-        name='textchannel',
-        description='''Creates a Text Channel in your current guild.
-        Requires the Manage Channels permission.''',
-        aliases=['text','tc']
-    )
-
-    @commands.has_permissions(manage_channels=True)
-    async def createguildtextchannel(self, ctx, name: str="Text Channel", category: discord.CategoryChannel=None, position: int=None, topic: str=None, nsfw: bool=None, slowmode_delay: int=None, reason: str=None):
-        tc = await ctx.guild.create_text_channel(name=name, position=position, slowmode_delay=slowmode_delay, nsfw=nsfw, topic=topic, category=category, reason=reason)
-        await ctx.send(f"The text channel {tc.mention} has been created!")
-
-    @guildcreate.command(
-        name='voicechannel',
-        description='''Creates a Voice Channel in your current guild.
-        Requires the Manage Channels permission.''',
-        aliases=['voice','vc']
-    )
-
-    @commands.has_permissions(manage_channels=True)
-    async def createguildvoicechannel(self, ctx, name: str="Voice Channel", category: discord.CategoryChannel=None, position: int=None, user_limit: int=None, bitrate: int=None, reason: str=None):
-        vc = await ctx.guild.create_voice_channel(name=name, category=category, position=position, user_limit=user_limit, bitrate=bitrate, reason=reason)
-        await ctx.send(f"The voice channel {vc.mention} has been created!")
-
-    #---------------------------------------------------------------------------------
-
-    @commands.group(
         name='advancedguildinfo',
         description='''Gives you all the available information about this guild.
         Note: it is recommended to use this in a private channel to prevent any unwanted information being seen by normal users.''',
@@ -196,21 +159,6 @@ class Admin(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.group(
-        name='setup',
-        help='Allows you to set up the bot, enabling welcome messages and more.',
-        aliases=['config']
-    )
-
-    @commands.has_permissions(administrator=True)
-    async def setup(self, ctx):
-        if ctx.invoked_subcommand is None:
-            raise commands.BadArgument("Invalid subcommand passed.")
-        pass
-
-
-    #---------------------------------------------------------------------------------
-
     @commands.command(
         name='rename',
         description='Changes a user\'s nickname',
@@ -218,7 +166,7 @@ class Admin(commands.Cog):
     )
 
     @commands.has_permissions(manage_nicknames=True)
-    async def rename_command(self, ctx, who: discord.Member, *, nickname):
+    async def _rename(self, ctx, who: discord.Member, *, nickname):
         if who.top_role < ctx.message.author.top_role or ctx.message.author.id == ctx.guild.owner_id:
             changed = False
             if nickname == 'None':
@@ -236,7 +184,7 @@ class Admin(commands.Cog):
     )
 
     @commands.has_permissions(kick_members=True)
-    async def kick_command(self, ctx, who: discord.Member, *, reason = None):
+    async def _kick(self, ctx, who: discord.Member, *, reason = None):
         if who.top_role < ctx.message.author.top_role or ctx.message.author.id == ctx.guild.owner_id:
             await ctx.guild.kick(user=who, reason=reason)
             await ctx.send(f'{who} was kicked for {reason}.\nID: `{who.id}`')
@@ -306,5 +254,67 @@ class Admin(commands.Cog):
 
     #@_ban.before_invoke()
 
+class Setup(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.group(name='create', help='Allows you to create various guild-related things.')
+    async def _guildcreate(self, ctx):
+        if ctx.invoked_subcommand is None:
+            raise commands.BadArgument("Invalid subcommand passed.")
+        pass
+
+    @_guildcreate.command(
+    name='textchannel',
+    help='Creates a Text Channel in your current guild. Requires the Manage Channels permission.',
+    aliases=['text','tc'])
+
+    @commands.has_permissions(manage_channels=True)
+    async def _createtextchannel(self, ctx, name: str="Text Channel", category: discord.CategoryChannel=None, position: int=None, topic: str=None, nsfw: bool=None, slowmode_delay: int=None, reason: str=None):
+        if 1 < len(name) < 100:
+            if topic is not None:
+                if len(topic) > 1024:
+                    raise commands.CommandError("Please choose a channel topic that is 1024 or less characters in length.")
+
+            if slowmode_delay is not None:
+                if slowmode_delay < 0 or slowmode_delay > 21600:
+                    raise commands.CommandError("Please choose a delay between 0 and 21600 seconds.")
+
+            c = await ctx.guild.create_text_channel(name=name, position=position, slowmode_delay=slowmode_delay, nsfw=nsfw, topic=topic, category=category, reason=reason)
+            await ctx.send(f"The text channel {c.mention} has been created!")
+        else:
+            raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
+
+    @_guildcreate.command(
+        name='voicechannel',
+        help='Creates a Voice Channel in your current guild. Requires the Manage Channels permission.',
+        aliases=['voice','vc']
+    )
+
+    @commands.has_permissions(manage_channels=True)
+    async def _createvoicechannel(self, ctx, name: str="Voice Channel", category: discord.CategoryChannel=None, position: int=None, user_limit: int=None, bitrate: int=None, reason: str=None):
+        if 1 < len(name) < 100:
+            c = await ctx.guild.create_voice_channel(name=name, category=category, position=position, user_limit=user_limit, bitrate=bitrate, reason=reason)
+            await ctx.send(f"The voice channel {c.mention} has been created!")
+        else:
+            raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
+
+    @_guildcreate.command(
+        name='category',
+        help='Creates a Channel Category in the current guild.',
+        aliases=['cc']
+    )
+
+    @commands.has_permissions(manage_channels=True)
+    async def _createcategory(self, ctx, name: str="Category", reason: str=None):
+        if 1 < len(name) < 100:
+            c = await ctx.guild.create_category(name=name, reason=reason)
+            await ctx.send(f"The category {c.mention} has been created!")
+        else:
+            raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
+
+    #---------------------------------------------------------------------------------
+
 def setup(bot):
     bot.add_cog(Admin(bot))
+    bot.add_cog(Setup(bot))

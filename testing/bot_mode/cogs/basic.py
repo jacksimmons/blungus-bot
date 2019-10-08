@@ -274,26 +274,31 @@ class Basic(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.command(
-        name='userinfo',
-        description='Returns some basic information about a user.',
-        aliases=['memberinfo','whois']
+        name='memberinfo',
+        description='Returns some basic information about a member in this guild.',
+        aliases=['userinfo','whois']
     )
 
     # Member mention: <@id>
     # Role mention: <@&id>
     # Channel mention: <#id>
-    async def user_info(self, ctx, user: discord.Member):
+    async def member_info(self, ctx, member: discord.Member):
         roles = ''
         perms = ''
-        reached_end_of_user_perms = False
-        for x in range(0, len(user.roles)):
-            if roles == '':
-                roles += f'{user.roles[x]}'
+        reached_end_of_member_perms = False
+        if len(roles) < 250:
+            if len(member.roles[len(member.roles)-(x+1)].name) >= 30:
+                roles += f', {member.roles[len(member.roles)-(x+1)].name[:30]}...'
             else:
-                roles += f', <@&{user.roles[x].id}>'
+                if roles == '':
+                    roles += f'{guild.roles[len(guild.roles)-(x+1)].name}'
+                else:
+                    roles += f', {guild.roles[len(guild.roles)-(x+1)].name}'
+        elif len(roles) >= 250:
+            roles += f' ... {guild.default_role}'
 
-        perm_dict = iter(user.guild_permissions)
-        while reached_end_of_user_perms != True:
+        perm_dict = iter(member.guild_permissions)
+        while reached_end_of_member_perms != True:
             try:
                 perm = next(perm_dict)
                 if perm[1] == True:
@@ -302,24 +307,24 @@ class Basic(commands.Cog):
                     else:
                         perms += f', {perm[0]}'
             except StopIteration:
-                reached_end_of_user_perms = True
+                reached_end_of_member_perms = True
 
-        embed = discord.Embed(color=0x00ff00, title=f'<@{user.id}>')
-        embed.set_author(name=f"{user}", icon_url=user.avatar_url)
+        embed = discord.Embed(color=0x00ff00)
+        embed.set_author(name=member, icon_url=member.avatar_url)
         embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.avatar_url)
-        embed.set_thumbnail(url=user.avatar_url)
+        embed.set_thumbnail(url=member.avatar_url)
 
-        embed.add_field(name="Name", value=user.name, inline=True)
-        embed.add_field(name="ID", value=user.id, inline=True)
+        embed.add_field(name="Name", value=member.name, inline=True)
+        embed.add_field(name="ID", value=member.id, inline=True)
 
-        embed.add_field(name="Account created", value=f"{dotw[user.created_at.weekday()-1]}, {user.created_at.day} {moty[user.created_at.month-1]} {user.created_at.year}", inline=True)
-        embed.add_field(name="User joined", value=f"{dotw[user.joined_at.weekday()-1]}, {user.joined_at.day} {moty[user.joined_at.month]} {user.joined_at.year}", inline=True)
+        embed.add_field(name="Account created", value=f"{dotw[member.created_at.weekday()-1]}, {member.created_at.day} {moty[member.created_at.month-1]} {member.created_at.year}", inline=True)
+        embed.add_field(name="Joined guild", value=f"{dotw[member.joined_at.weekday()-1]}, {member.joined_at.day} {moty[member.joined_at.month]} {member.joined_at.year}", inline=True)
 
-        embed.add_field(name="Bot", value=user.bot, inline=True)
+        embed.add_field(name="Bot", value=member.bot, inline=True)
 
-        embed.add_field(name=f"Roles [{len(user.roles)}]", value=roles, inline=False)
+        embed.add_field(name=f"Roles [{len(member.roles)}]", value=roles, inline=False)
 
-        embed.add_field(name=f"Permissions", value=perms, inline=False)
+        #embed.add_field(name=f"Permissions", value=perms, inline=False)
 
         await ctx.send(embed=embed)
 
@@ -505,7 +510,10 @@ class Basic(commands.Cog):
     )
 
     async def length_command(self, ctx, *, message: str):
-        await ctx.send(f'"{message}" is {len(message)} characters long.')
+        if len(message) <= 500:
+            await ctx.send(f'"{message}" is {len(message)} characters long.')
+        else:
+            await ctx.send(f"That message is over 500 characters long.")
 
     #---------------------------------------------------------------------------------
 
@@ -515,14 +523,17 @@ class Basic(commands.Cog):
     )
 
     async def embed_command(self, ctx, colour:int, title, *, content):
-        embed = discord.Embed(color=colour)
-        embed.add_field(
-            name=title,
-            value=content,
-            inline=False
-        )
+        if len(content) <= 500:
+            embed = discord.Embed(color=colour)
+            embed.add_field(
+                name=title,
+                value=content,
+                inline=False
+            )
 
-        await ctx.send(embed=embed)
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("Your message is too long.")
 
     #---------------------------------------------------------------------------------
 
@@ -544,6 +555,8 @@ class Basic(commands.Cog):
     #)
 
     #async def react_command(self, ctx):
+
+    #@member_info.before_invoke()
 
     #---------------------------------------------------------------------------------
 

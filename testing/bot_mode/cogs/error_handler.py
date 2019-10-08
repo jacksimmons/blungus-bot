@@ -56,6 +56,9 @@ class CommandErrorHandler(commands.Cog):
         #-----------------------------------------------------------------------------
         # Default discord.py exceptions
 
+        elif isinstance(error, commands.CommandError):
+            return await ctx.send(error)
+
         elif isinstance(error, discord.Forbidden):
             return await ctx.send(f'{ctx.author.mention}, I do not have sufficient permissions to carry out `{ctx.command}` on this user.')
 

@@ -8,7 +8,7 @@ import random
 
 from discord.ext import commands
 
-cogs = ['cogs.basic','cogs.music','cogs.godmode','cogs.administrator','cogs.error_handler']
+cogs = ['cogs.basic','cogs.music','cogs.godmode','cogs.administrator','cogs.error_handler','cogs.sentience']
 
 def get_prefix(bot, message):
 
@@ -24,7 +24,6 @@ max_message_length = 500
 master_chat = 613399504602923009
 stalk_channel = 0
 output_channel = 0
-
 remove_id = 403633892680138763
 
 # Create a new bot, set the prefix, set the description, set the Owner ID and determine whether the bot is case-sensitive or not.
