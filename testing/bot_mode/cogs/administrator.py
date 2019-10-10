@@ -1,10 +1,6 @@
 import discord
 from discord.ext import commands
 
-changed = False
-kick = False
-ban = False
-
 dotw = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] #Day of the week
 moty = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] #Month of the year
 
@@ -68,13 +64,15 @@ class Admin(commands.Cog):
 
         for x in range(0, len(guild.roles)):
             if len(roles) < 250:
-                if len(guild.roles[len(guild.roles)-(x+1)].name) >= 30:
-                    roles += f', {guild.roles[len(guild.roles)-(x+1)].name[:30]}...'
+                role = guild.roles[len(guild.roles)-(x+1)]
+                if roles == '':
+                    roles = role.name[:30]
                 else:
-                    if roles == '':
-                        roles += f'{guild.roles[len(guild.roles)-(x+1)].name}'
-                    else:
-                        roles += f', {guild.roles[len(guild.roles)-(x+1)].name}'
+                    roles += f', {role.name[:30]}'
+                    
+                if len(role) >= 30:
+                    roles += '...'
+                    
             elif len(roles) >= 250:
                 roles += f' ... {guild.default_role}'
                 break
