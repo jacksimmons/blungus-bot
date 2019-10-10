@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 
+from base import Base
+
 dotw = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] #Day of the week
 moty = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] #Month of the year
 
@@ -20,38 +22,13 @@ class Admin(commands.Cog):
 
     @commands.has_permissions(administrator=True)
     async def advanced_guild_info(self, ctx):
+        guild = ctx.guild
         roles = ''
         categories = ''
         features = ''
-        guild = ctx.guild
 
-        for x in range(0, len(guild.roles)):
-            if len(roles) < 250:
-                role = guild.roles[len(guild.roles)-(x+1)].name
-                if roles == '':
-                    roles = role[:30]
-                else:
-                    roles += f', {role[:30]}'
-                    
-                if len(role) >= 30:
-                    roles += '...'
-                    
-            elif len(roles) >= 250:
-                roles += f' ... {guild.default_role}'
-                break
-
-        for x in range(0, len(guild.categories)):
-            if len(categories) < 250:
-                if len(guild.categories[len(guild.categories)-(x+1)].name) >= 30:
-                    categories += f'{guild.categories[len(guild.categories)-(x+1)].name[:30]}...'
-                else:
-                    if categories == '':
-                        categories += f'{guild.categories[x]}'
-                    else:
-                        categories += f', {guild.categories[x]}'
-            elif len(categories) >= 250:
-                categories += f' ... {guild.categories[len(guild.categories)-(x+1)]}'
-                break
+        roles = Base.convert_long_list(guild.roles, 30, 250, guild.default_role)
+        categories = Base.convert_long_list(guild.categories, 30, 250, guild.categories[len(guild.categories)-1])
 
         if guild.features == []:
             features = "None"
@@ -68,38 +45,31 @@ class Admin(commands.Cog):
 #1
         embed.add_field(
         name="Region",
-        value=f"{guild.region}",
-        inline=True)
+        value=f"{guild.region}")
 #2
         embed.add_field(
         name=f"Emoji [Limit: {guild.emoji_limit}]",
-        value=f"{len(guild.emojis)}",
-        inline=True)
+        value=f"{len(guild.emojis)}")
 #3
         embed.add_field(
         name=f"Channels [{len(guild.channels)}]",
-        value=f"Text: {len(guild.text_channels)}, Voice: {len(guild.voice_channels)}",
-        inline=True)
+        value=f"Text: {len(guild.text_channels)}, Voice: {len(guild.voice_channels)}")
 #4
         embed.add_field(
         name=f"Members [{len(guild.members)}]",
-        value=f"Human: number, Bot: number",
-        inline=False)
+        value=f"Human: number, Bot: number")
 #5
         embed.add_field(
         name=f"Tier [Boosters: {len(guild.premium_subscribers)}]",
-        value=f"{guild.premium_tier}",
-        inline=True)
+        value=f"{guild.premium_tier}")
 #6
         embed.add_field(
         name="File Upload Limit",
-        value=f"{guild.filesize_limit/1000000}MB",
-        inline=True)
+        value=f"{guild.filesize_limit/1000000}MB")
 #7
         embed.add_field(
         name="Bitrate Limit",
-        value=f"{guild.bitrate_limit/1000} kbps",
-        inline=True)
+        value=f"{guild.bitrate_limit/1000} kbps")
 #8
         embed.add_field(
         name=f"AFK Channel [AFK: {int(guild.afk_timeout/60)}m]",

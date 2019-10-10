@@ -83,9 +83,8 @@ class Music(commands.Cog):
         async with ctx.typing():
             global player
             player = await YTDLSource.from_url(url, loop=self.bot.loop)
+            print(player.data)
             ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
-
-        #print(ctx.voice_client.source.data)
 
         if ctx.guild.get_member(self.bot.user.id).permissions_in(ctx.channel).value & 0x4000 == 0x4000:
             embed = discord.Embed(color=0xff0000, url=player.data.get('webpage_url'))
@@ -166,7 +165,7 @@ class Music(commands.Cog):
         if player is not None:
             if ctx.guild.get_member(self.bot.user.id).permissions_in(ctx.channel).value & 0x4000 == 0x4000:
                 embed = discord.Embed(color=0xfff000)
-                embed.set_author(name="Song Info", icon_url=ctx.author.avatar_url)
+                embed.set_author(name=player.data.get('title'), icon_url=ctx.author.avatar_url)
                 embed.set_thumbnail(url=player.data.get('thumbnail'))
 
                 embed.add_field(name="Webpage Link", value=f"[{player.title}]({player.data.get('webpage_url')})")
@@ -189,6 +188,32 @@ class Music(commands.Cog):
                 await ctx.send(embed=embed)
         else:
             raise commands.CommandError("No music is currently being played.")
+
+    @commands.command()
+    async def songdesc(self, ctx):
+        """Displays the description of the YouTube video"""
+        exited = False
+        x = 0
+        descriptions = []
+        if player is not None:
+            if ctx.guild.get_member(self.bot.user.id).permissions_in(ctx.channel).value & 0x4000 == 0x4000:
+
+                description = player.data.get('description')
+                while exited != True:
+                    descriptions.append(description[x:x+1024])
+                    if len(description) >= x + 1024:
+                        x += 1024
+                    else:
+                        exited = True
+                print(str(descriptions))
+                print("fuwefjrwiojiwejoirjo3eowriewjroiewjio")
+
+                for y in range(0, len(descriptions)):
+                    embed = discord.Embed(color=0xfff000)
+                    embed.set_author(name=player.title)
+                    embed.set_thumbnail(url=player.data.get('thumbnail'))
+                    embed.add_field(name=f"Page {y+1}", value=descriptions[y])
+                    await ctx.send(embed=embed)
 
     @commands.command()
     async def leave(self, ctx):
