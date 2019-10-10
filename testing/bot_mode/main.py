@@ -98,4 +98,4 @@ async def on_message(message):
 #    await channel.send("Hi")
 #    print(channel)
 
-bot.run('NjIxNzQxNTc2OTAwNTc1Mjcz.XXpwPQ.O3gLeqbxtwH5AVBb_8TYqwuFBTU', bot=True, reconnect=True)
+bot.run('NjIxNzQxNTc2OTAwNTc1Mjcz.XZ-K9w.ccbcgQXMxOyO3-OnseQYI2CSSQk', bot=True, reconnect=True)
