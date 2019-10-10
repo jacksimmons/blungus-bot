@@ -64,11 +64,11 @@ class Admin(commands.Cog):
 
         for x in range(0, len(guild.roles)):
             if len(roles) < 250:
-                role = guild.roles[len(guild.roles)-(x+1)]
+                role = guild.roles[len(guild.roles)-(x+1)].name
                 if roles == '':
-                    roles = role.name[:30]
+                    roles = role[:30]
                 else:
-                    roles += f', {role.name[:30]}'
+                    roles += f', {role[:30]}'
                     
                 if len(role) >= 30:
                     roles += '...'
