@@ -1,6 +1,7 @@
 import discord
 import youtube_dl
 import datetime
+
 from discord.ext import commands
 
 # Suppress noise about console usage from errors
@@ -78,33 +79,6 @@ class Music(commands.Cog):
         await ctx.send(f'Now playing: {query}')
 
     @commands.command()
-    async def play(self, ctx, *, url):
-        """Plays from a url (almost anything youtube_dl supports)"""
-        async with ctx.typing():
-            global player
-            player = await YTDLSource.from_url(url, loop=self.bot.loop)
-            print(player.data)
-            ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
-
-        if ctx.guild.get_member(self.bot.user.id).permissions_in(ctx.channel).value & 0x4000 == 0x4000:
-            embed = discord.Embed(color=0xff0000, url=player.data.get('webpage_url'))
-            embed.set_author(name="YouTube", icon_url=ctx.author.avatar_url)
-            embed.set_footer(text=f"👁️{player.data.get('view_count')}👍{player.data.get('like_count')}👎{player.data.get('dislike_count')}")
-            embed.set_thumbnail(url=player.data.get('thumbnail'))
-
-            embed.add_field(name=f"{player.data.get('uploader')}", value=f"[{player.title}]({player.data.get('webpage_url')})")
-            embed.add_field(name="Duration", value=str(datetime.timedelta(seconds=player.data.get('duration'))))
-
-            global play_message
-            play_message = await ctx.send(content="**Now Playing**", embed=embed)
-
-        else:
-            play_message = None
-            await ctx.send(
-            f'''>>> **Now playing: `{player.title}` by `{player.data.get('uploader')}`
-            Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **''')
-
-    @commands.command()
     async def stream(self, ctx, *, url):
         """Streams from a url (same as yt, but doesn't predownload)"""
 
@@ -123,7 +97,7 @@ class Music(commands.Cog):
             global play_message
             if play_message is not None:
                 await play_message.edit(content=f"**Now Playing** (Paused by {ctx.author.mention})")
-            await ctx.send("**Paused**")
+            await ctx.send("The player is now **paused**. Use **resume** to unpause.")
 
         else:
             raise commands.CommandError("The music is already paused.")
@@ -160,19 +134,43 @@ class Music(commands.Cog):
         ctx.voice_client.source.volume = volume / 100
 
     @commands.command()
+    async def play(self, ctx, *, url):
+        """Plays from a url (almost anything youtube_dl supports)"""
+        async with ctx.typing():
+            global player
+            player = await YTDLSource.from_url(url, loop=self.bot.loop)
+            print(player.data)
+            ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
+
+        if ctx.guild.get_member(self.bot.user.id).permissions_in(ctx.channel).value & 0x4000 == 0x4000:
+            embed = discord.Embed(color=0xff0000, url=player.data.get('webpage_url'))
+            embed.set_author(name="YouTube", icon_url=ctx.author.avatar_url)
+            embed.set_footer(text=f"👁️{player.data.get('view_count')}👍{player.data.get('like_count')}👎{player.data.get('dislike_count')}")
+            embed.set_thumbnail(url=player.data.get('thumbnail'))
+
+            embed.add_field(name=f"{player.data.get('uploader')}", value=f"[{player.title}]({player.data.get('webpage_url')})")
+            embed.add_field(name="Duration", value=str(datetime.timedelta(seconds=player.data.get('duration'))))
+
+            global play_message
+            play_message = await ctx.send(content="**Now Playing**", embed=embed)
+
+        else:
+            play_message = None
+            await ctx.send(
+            f'''>>> **Now playing: `{player.title}` by `{player.data.get('uploader')}`
+            Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **''')
+
+    @commands.command()
     async def songinfo(self, ctx):
         """Displays some info about the song"""
         if player is not None:
             if ctx.guild.get_member(self.bot.user.id).permissions_in(ctx.channel).value & 0x4000 == 0x4000:
-                embed = discord.Embed(color=0xfff000)
+                embed = discord.Embed(color=0xff0000)
                 embed.set_author(name=player.data.get('title'), icon_url=ctx.author.avatar_url)
+                embed.set_footer(text=f"👁️{player.data.get('view_count')}👍{player.data.get('like_count')}👎{player.data.get('dislike_count')}")
                 embed.set_thumbnail(url=player.data.get('thumbnail'))
 
                 embed.add_field(name="Webpage Link", value=f"[{player.title}]({player.data.get('webpage_url')})")
-                embed.add_field(name="Views", value=f"👁️{player.data.get('view_count')}")
-
-                embed.add_field(name="Likes", value=f"👍{player.data.get('like_count')}")
-                embed.add_field(name="Dislikes", value=f"👎{player.data.get('dislike_count')}")
 
                 embed.add_field(name="Uploader", value=f"{player.data.get('uploader')}")
                 embed.add_field(name="Duration", value=str(datetime.timedelta(seconds=player.data.get('duration'))))
@@ -205,11 +203,9 @@ class Music(commands.Cog):
                         x += 1024
                     else:
                         exited = True
-                print(str(descriptions))
-                print("fuwefjrwiojiwejoirjo3eowriewjroiewjio")
 
                 for y in range(0, len(descriptions)):
-                    embed = discord.Embed(color=0xfff000)
+                    embed = discord.Embed(color=0xff0000)
                     embed.set_author(name=player.title)
                     embed.set_thumbnail(url=player.data.get('thumbnail'))
                     embed.add_field(name=f"Page {y+1}", value=descriptions[y])
