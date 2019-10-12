@@ -226,16 +226,13 @@ class Setup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.group(name='create', help='Allows you to create various guild-related things.')
-    async def _guildcreate(self, ctx):
-        if ctx.invoked_subcommand is None:
-            raise commands.BadArgument("Invalid subcommand passed.")
-        pass
-
-    @_guildcreate.command(
+    @commands.group(
     name='textchannel',
     help='Creates a Text Channel in your current guild. Requires the Manage Channels permission.',
-    aliases=['text','tc'])
+    aliases=['tc'])
+
+    async def _textchannel(self, ctx):
+        pass
 
     @commands.has_permissions(manage_channels=True)
     async def _createtextchannel(self, ctx, name: str="Text Channel", category: discord.CategoryChannel=None, position: int=None, topic: str=None, nsfw: bool=None, slowmode_delay: int=None, reason: str=None):
@@ -243,6 +240,8 @@ class Setup(commands.Cog):
             if topic is not None:
                 if len(topic) > 1024:
                     raise commands.CommandError("Please choose a channel topic that is 1024 or less characters in length.")
+
+    #---------------------------------------------------------------------------------
 
             if slowmode_delay is not None:
                 if slowmode_delay < 0 or slowmode_delay > 21600:
@@ -253,7 +252,7 @@ class Setup(commands.Cog):
         else:
             raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
 
-    @_guildcreate.command(
+    @commands.command(
         name='voicechannel',
         help='Creates a Voice Channel in your current guild. Requires the Manage Channels permission.',
         aliases=['voice','vc']
@@ -267,7 +266,7 @@ class Setup(commands.Cog):
         else:
             raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
 
-    @_guildcreate.command(
+    @commands.command(
         name='category',
         help='Creates a Channel Category in the current guild.',
         aliases=['cc']

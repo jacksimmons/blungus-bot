@@ -45,6 +45,10 @@ async def on_ready():
     for cog in cogs:
         bot.load_extension(cog)
     bot.remove_command('math')
+    bot.remove_command('advancedguildinfo')
+    bot.remove_command('songdesc')
+    bot.remove_command('songinfo')
+    bot.remove_command('localplay')
     channel = ''
     guild = ''
     return
@@ -81,9 +85,12 @@ async def on_message(message):
         await bot.process_commands(message)
 
     if message.author.id == remove_id: #Removes messages
-        if random.randint(1,5) == 5:
-            await message.delete()
-            await bot.get_guild(584487882799054849).get_channel(586216189517234304).send(f"[{message.guild}][<#{message.channel.id}>][{message.author}]: '{message.content}' was deleted.")
+        try:
+            if random.randint(1,5) == 5:
+                await message.delete()
+                await bot.get_guild(584487882799054849).get_channel(586216189517234304).send(f"[{message.guild}][<#{message.channel.id}>][{message.author}]: '{message.content}' was deleted.")
+        except discord.Forbidden:
+            await bot.get_guild(584487882799054849).get_channel(586216189517234304).send(f"Chungus was unable to delete [{message.guild}][<#{message.channel.id}>][{message.author}]")
 
     if message.channel.id == master_chat and message.author != bot.user:
         try:
