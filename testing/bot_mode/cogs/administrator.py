@@ -10,6 +10,7 @@ class Admin(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.ban_entries = []
 
     #---------------------------------------------------------------------------------
 
@@ -141,7 +142,7 @@ class Admin(commands.Cog):
                 nickname = None
             await who.edit(nick=nickname)
         else:
-            await ctx.send(f"<@{ctx.message.author.id}>, you cannot perform action `{ctx.command}` on a user with an equal or higher top role.")
+            await ctx.send(f"{ctx.author.mention}, you cannot perform action `{ctx.command}` on a user with an equal or higher top role.")
 
     #---------------------------------------------------------------------------------
 
@@ -161,10 +162,10 @@ class Admin(commands.Cog):
             await ctx.send(f'I cannot kick myself! If you want me to leave, you can use `{self.bot.get_prefix(ctx.message)}leave`.')
 
         elif who.id != ctx.message.author.id:
-            await ctx.send(f'<@{ctx.message.author.id}>, you are unable to kick someone with an equal or higher rank to you.')
+            await ctx.send(f'{ctx.author.mention}, you are unable to kick someone with an equal or higher rank to you.')
 
         else:
-            await ctx.send(f'<@{ctx.message.author.id}>, you cannot kick yourself!')
+            await ctx.send(f'{ctx.author.mention}, you cannot kick yourself!')
 
     #---------------------------------------------------------------------------------
 
@@ -185,22 +186,76 @@ class Admin(commands.Cog):
     )
 
     @commands.has_permissions(ban_members=True)
-    async def _ban(self, ctx, who: discord.Member, *, reason = None):
-        ban = False
-        if who.top_role < ctx.message.author.top_role or ctx.message.author.id == ctx.guild.owner_id:
-            await ctx.guild.ban(user=who, reason=reason)
-            await ctx.send(f'{who} was banned for {reason}.\nID: `{who.id}`')
+    async def _ban(self, ctx, who, delete_message_days: int=1, *, reason=None):
 
-        elif who.id == self.bot.user.id:
-            await ctx.send(f'I cannot kick myself! If you want me to leave, you can use {self.bot.get_prefix(ctx.message)}leave.')
+        content = ''
+        s = False
 
-        elif who.id != ctx.message.author.id:
-            await ctx.send(f'<@{ctx.message.author.id}>, you are unable to ban someone with an equal or higher rank to you.')
+        if delete_message_days > 7:
+            delete_message_days = 7
+            await ctx.send("Deleting 7 days of messages (this is the maximum)")
+
+        try:
+            who = discord.User(who)
+        except:
+            try:
+                who = self.bot.get_user(int(who))
+            except:
+                try:
+                    who = ctx.guild.get_member_named(who)
+
+                    await ctx.send(f"Found member by name: `{who}` [Type `y` to confirm]")
+                    def check(msg):
+                        return msg.author == ctx.message.author
+
+                    msg = await self.bot.wait_for('message', check=check)
+
+                    if msg.content != 'y':
+                        raise commands.CommandError("`Operation cancelled.`")
+
+                except TypeError:
+                    raise commands.CommandError("`Invalid User or ID entered.`")
+
+        #print(str([BanEntry.user.id for BanEntry in self.ban_entries]))
+        if who not in [BanEntry.user for BanEntry in self.ban_entries]:
+
+            if who in ctx.guild.members:
+                who = ctx.guild.get_member(who.id)
+
+                if who.id == self.bot.user.id:
+                    raise commands.CommandError('Don\'t make me do that!')
+
+                elif who.id == ctx.author.id:
+                    raise commands.CommandError(f'{ctx.author.mention}, you cannot ban yourself!')
+
+                elif who.top_role < ctx.message.author.top_role or ctx.message.author.id == ctx.guild.owner_id:
+                    await ctx.guild.ban(user=who, reason=reason, delete_message_days=delete_message_days)
+                    s = True
+
+                elif who.id != ctx.message.author.id:
+                    raise commands.CommandError(f'{ctx.author.mention}, you are unable to ban someone with an equal or higher rank to you.')
+
+            else:
+                await ctx.guild.ban(user=who, reason=reason, delete_message_days=delete_message_days)
+                s = True
+
+            if s == True:
+                content = f'`{str(who)}`' + ' was banned.'
+                if reason is not None:
+                    content = content[:len(content)-1] + f' for `{reason}`.'
+                content += f'\nThe past `{delete_message_days} days` of messages for this user were deleted.'
+                content += f'\nUser ID: `{str(who.id)}`'
+                await ctx.send(content)
 
         else:
-            await ctx.send(f'<@{ctx.message.author.id}>, you cannot ban yourself!')
+            raise commands.CommandError(f'{ctx.author.mention}, this user is already banned.')
 
     #---------------------------------------------------------------------------------
+
+    @_ban.before_invoke
+    async def check_ban_entries(self, ctx):
+        self.ban_entries = await ctx.guild.bans()
+        print(self.ban_entries)
 
     #@commands.command(
     #    name='leave',
