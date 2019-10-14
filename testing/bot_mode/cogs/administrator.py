@@ -242,7 +242,6 @@ class Admin(commands.Cog):
             else:
                 await ctx.guild.ban(user=who, reason=reason, delete_message_days=delete_message_days)
                 s = True
-
             if s == True:
                 content = f'`{str(who)}` was banned.'
                 if reason is not None:
@@ -265,7 +264,7 @@ class Admin(commands.Cog):
 
     @commands.has_permissions(administrator=True)
     @commands.bot_has_permissions(administrator=True) #We don't want the bot being able to ban everyone with just ban_members
-    async def _mban(self, ctx, who: commands.Greedy[discord.Member], *, delete_message_days=1, reason=None):
+    async def _mban(self, ctx, who: commands.Greedy[discord.Member], delete_message_days=1, *, reason=None):
         failed_bans = ''
         successful_bans = []
 
