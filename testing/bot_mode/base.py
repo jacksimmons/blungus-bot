@@ -42,23 +42,28 @@ class Base:
             for row in reader:
 
                 if row != []:
-                    input_append_skip = False
+                    input_duplicate = False
 
                     if row[0] in input_list: #Check every input in the column for duplicates
                         original_index = input_list.index(row[0])
-                        input_append_skip = True
-
+                        input_duplicate = True
                     input_list.append(row[0])
 
-                    if input_append_skip != True:
+                    if input_duplicate == False:
                         rows.append(row)
 
                     else:
                         merged_row = rows[original_index]
-                        rows.pop(original_index)
-                        for x in range(1,len(row)):
-                            merged_row.append(row[x])
+                        print(len(input_list))
+                        print(len(rows))
+                        rows.pop(original_index) #Remove the original
+                        input_list.pop(original_index) #Remove the input to line up with 'rows'
+                        for x in range(1,len(row)): #Skip the input
+                            merged_row.append(row[x]) #Append any responses that can be found
                             print(merged_row)
+                        print(rows[len(rows)-1])
+                        #rows.pop(rows.index(row)) #Remove the new row that was added; this is replaced with the merged row on the line below
+
                         rows.append(merged_row)
 
         with open(filename, 'w') as csvwrite:
@@ -91,6 +96,40 @@ class Base:
                 #print(row)
 
                 if row != []:
+                    rows.append(row)
+                    #print('rows')
+                    #print(rows)
+
+        with open(filename, 'w') as csvwrite:
+            writer = csv.writer(csvwrite)
+
+            for row in rows:
+                writer.writerow(row)
+
+    def check_for_blanks(filename):
+        with open(filename, 'r') as csvdata:
+            reader = csv.reader(csvdata)
+
+            rows = []
+            row_items = []
+
+            for row in reader:
+                row_items.clear()
+
+                #for x in range(0,len(row)): #Check every item in the row for duplicates (even the input as this may cause infinite loops)
+                #    if row[x] == '':
+            #            rows.pop(row)
+            #        rows.append(row)
+                    #print('row items')
+                    #print(row_items)
+
+            #    row.clear()
+            #    for x in range(0, len(row_items)):
+            #        row.append(row_items[x])
+                #print('row')
+                #print(row)
+
+                if row != [] and '' not in row:
                     rows.append(row)
                     #print('rows')
                     #print(rows)

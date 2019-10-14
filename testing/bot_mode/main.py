@@ -1,11 +1,18 @@
+
+
 from datetime import datetime as d
+#'start' is to be determined as early as possible so module loading times do not affect
+#the load time displayed when the script has loaded.
 start = d.timestamp(d.now())
 
+#Import the discord module
 import discord
-import math
-import sys
 import random
 
+#Import 'commands' which allows the creation of commands that are 'invoked' by a certain keyword
+#e.g. 'help', which displays the default help command. This keyword must have the 'prefix' before it
+#for example if the prefix is '.', then the command would be activated by sending '.help' in a Discord
+#channel that the bot has access to and can send messages to.
 from discord.ext import commands
 
 cogs = ['cogs.basic','cogs.music','cogs.godmode','cogs.administrator','cogs.error_handler','cogs.sentience']
