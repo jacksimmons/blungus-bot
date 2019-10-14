@@ -13,7 +13,6 @@ class Admin(commands.Cog):
         self.ban_entries = []
         self.m_converter = None #Will convert from string to discord.Member object type
         self.u_converter = None #Will convert from string to discord.User object type
-        self.info = {} #Information dictionary for this Guild
     
     #---------------------------------------------------------------------------------
 
