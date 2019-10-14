@@ -11,28 +11,41 @@ class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ban_entries = []
-        self.m_converter = None #String to discord.Member converter
-        self.u_converter = None #String to discord.User converter
-
+        self.m_converter = None #Will convert from string to discord.Member object type
+        self.u_converter = None #Will convert from string to discord.User object type
+        self.info = {} #Information dictionary for this Guild
+    
     #---------------------------------------------------------------------------------
 
     @commands.group(
-        name='advancedguildinfo',
-        description='''Gives you all the available information about this guild.
+        name='advancedguildinfo'
+        description='''Gives you a large amount of available information about this guild.
         Note: it is recommended to use this in a private channel to prevent any unwanted information being seen by normal users.''',
         aliases=['agi','asi']
     )
 
     @commands.has_permissions(administrator=True)
+    #We don't want normal users to see this information, so this check() ensures only users with the 'administrator'
+    #permission can use this command.
     async def advanced_guild_info(self, ctx):
+        
+        #This variable (ctx.guild) is used a lot, so this helps simplify the code below
         guild = ctx.guild
+        
+        #Variable definitions
         roles = ''
         categories = ''
         features = ''
-
+        
+        self.update_info(ctx)
+        
+        #Uses a function in the Base module to convert the list (guild.roles) into a string
         roles = Base.convert_long_list(guild.roles, 30, 250, guild.default_role)
+        
+        #Uses a function in the Base module to convert the list (guild.categories) into a string
         categories = Base.convert_long_list(guild.categories, 30, 250, guild.categories[len(guild.categories)-1])
 
+        #The (guild.features) list is much shorter, so it can be converted to a string right here:
         if guild.features == []:
             features = "None"
         else:
@@ -41,88 +54,58 @@ class Admin(commands.Cog):
                     features = guild.features[x]
                 else:
                     features += f', {guild.features[x]}'
-
-        embed = discord.Embed(color=0x00ff00)
-        embed.set_author(name=f"{guild.name}", icon_url=f"{guild.icon_url}")
+                    
+        #Create an embedded message with guild information in it with the colour theme R:0, G:255, B:0:
+        embed = discord.Embed(color=0x00ff00) #R:0, G:255, B:0
+        embed.set_author(info[name], icon_url=guild.icon_url) #The name of the Guild and the Guild's icon
         embed.set_footer(text=f"Guild ID: {guild.id} | Guild Owner: {guild.owner} | Guild Owner ID: {guild.owner_id} | Shard ID: {guild.shard_id} | Chunked: {guild.chunked}", icon_url=f"{ctx.author.avatar_url}")
-#1
-        embed.add_field(
-        name="Region",
-        value=f"{guild.region}")
-#2
-        embed.add_field(
-        name=f"Emoji [Limit: {guild.emoji_limit}]",
-        value=f"{len(guild.emojis)}")
-#3
-        embed.add_field(
-        name=f"Channels [{len(guild.channels)}]",
-        value=f"Text: {len(guild.text_channels)}, Voice: {len(guild.voice_channels)}")
+
+        #Syntax: Embed.add_field(name[str], value[str], inline[bool])
+        embed.add_field("Region", info['region']) #1: name, value
+        embed.add_field(f"Emoji [Limit: {guild.emoji_limit}]", len(guild.emojis)) #2: name, value
+        embed.add_field(name=f"Channels [{len(guild.channels)}]", value=f"Text: {len(guild.text_channels)}, Voice: {len(guild.voice_channels)}")
 #4
-        embed.add_field(
-        name=f"Members [{len(guild.members)}]",
-        value=f"Human: number, Bot: number")
+        embed.add_field(name=f"Members [{len(guild.members)}]", value=f"Human: number, Bot: number")
 #5
-        embed.add_field(
-        name=f"Tier [Boosters: {len(guild.premium_subscribers)}]",
-        value=f"{guild.premium_tier}")
+        embed.add_field(name=f"Tier [Boosters: {len(guild.premium_subscribers)}]", value=f"{guild.premium_tier}")
 #6
-        embed.add_field(
-        name="File Upload Limit",
-        value=f"{guild.filesize_limit/1000000}MB")
+        embed.add_field(name="File Upload Limit", value=f"{guild.filesize_limit/1000000}MB")
 #7
-        embed.add_field(
-        name="Bitrate Limit",
-        value=f"{guild.bitrate_limit/1000} kbps")
+        embed.add_field(name="Bitrate Limit", value=f"{guild.bitrate_limit/1000} kbps")
 #8
-        embed.add_field(
-        name=f"AFK Channel [AFK: {int(guild.afk_timeout/60)}m]",
-        value=f"{guild.afk_channel}")
+        embed.add_field(name=f"AFK Channel [AFK: {guild.afk_timeout/60}m]", value=f"{guild.afk_channel}")
 #9
-        embed.add_field(
-        name="2FA Level",
-        value=f"{guild.mfa_level}")
+        embed.add_field(name="2FA Level", value=f"{guild.mfa_level}")
 #10
-        embed.add_field(
-        name="Default Notifications",
-        value=f"{str(guild.default_notifications[0]).title()}")
+        embed.add_field(name="Default Notifications", value=f"{str(guild.default_notifications[0]).title()}")
 #11
-        embed.add_field(
-        name="Verification Level",
-        value=f"{str(guild.verification_level).title()}")
+        embed.add_field(name="Verification Level", value=f"{str(guild.verification_level).title()}")
 #12
-        embed.add_field(
-        name="Explicit Content Filter",
-        value=f"{str(guild.explicit_content_filter).title()}")
+        embed.add_field(name="Explicit Content Filter", value=f"{str(guild.explicit_content_filter).title()}")
 #13
-        embed.add_field(
-        name="Guild Invite Splash",
-        value=f"{guild.splash}")
+        embed.add_field(name="Guild Invite Splash", value=f"{guild.splash}")
 #14
-        embed.add_field(
-        name="Extra Info",
-        value=f"System Channel: <#{guild.system_channel.id}>, Large Guild: {guild.large}, Unavailable: {guild.unavailable}")
+        embed.add_field(name="Extra Info",
+        value=f"System Channel: {guild.system_channel.mention}, Large Guild: {guild.large}, Unavailable: {guild.unavailable}",
+        inline=False)
 #before preantepenultimate 21
-        embed.add_field(
-        name="Guild Limits",
-        value=f"Presences Limit: {guild.max_presences}, Member Limit: {guild.max_members}")
+        embed.add_field(name="Guild Limits",
+        value=f"Presences Limit: {guild.max_presences}, Member Limit: {guild.max_members}",
+        inline=False)
 #preantepenultimate 22
-        embed.add_field(
-        name="Premium Guild Features",
+        embed.add_field(name="Premium Guild Features",
         value=f"{features.title()}",
         inline=False)
 #antepenultimate 23
-        embed.add_field(
-        name="Server created",
+        embed.add_field(name="Server created",
         value=f"{dotw[guild.created_at.weekday()-1]}, {guild.created_at.day} {moty[guild.created_at.month-1]} {guild.created_at.year} at {guild.created_at.hour}:{guild.created_at.minute}",
         inline=False)
 #penultimate 24
-        embed.add_field(
-        name=f"Roles [{len(guild.roles)}]",
+        embed.add_field(name=f"Roles [{len(guild.roles)}]",
         value=f"{roles}",
         inline=False)
 #ultimate 25
-        embed.add_field(
-        name=f"Categories [{len(guild.categories)}]",
+        embed.add_field(name=f"Categories [{len(guild.categories)}]",
         value=f"{categories}",
         inline=False)
 
@@ -139,7 +122,6 @@ class Admin(commands.Cog):
     @commands.has_permissions(manage_nicknames=True)
     async def _rename(self, ctx, who: discord.Member, *, nickname):
         if who.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
-            changed = False
             if nickname == 'None':
                 nickname = None
             await who.edit(nick=nickname)
@@ -435,7 +417,7 @@ class Setup(commands.Cog):
             raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
 
     #---------------------------------------------------------------------------------
-
+                           
 def setup(bot):
     bot.add_cog(Admin(bot))
     bot.add_cog(Setup(bot))
