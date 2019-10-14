@@ -225,11 +225,9 @@ class Admin(commands.Cog):
     @_unban.before_invoke
     @_mban.before_invoke
     async def check_ban_entries(self, ctx):
-        from discord.ext.commands import MemberConverter
-        from discord.ext.commands import UserConverter
         self.ban_entries = await ctx.guild.bans()
-        self.u_converter = UserConverter()
-        self.m_converter = MemberConverter()
+        self.u_converter = commands.UserConverter()
+        self.m_converter = commands.MemberConverter()
         print(self.ban_entries)
 
     #@commands.command(
@@ -268,12 +266,12 @@ class Setup(commands.Cog):
         # - Is there a name more than 1 and less than 100 characters long?
         # - Is the length of the topic less than 1024 characters long?
         # - Is the slowmode delay valid and less than 6 hours?
-                          
+
         if 1 < len(name) < 100:
             if topic is not None:
                 if len(topic) > 1024:
                     raise commands.CommandError("Please choose a channel topic that is 1024 or less characters in length.")
-                          
+
             if slowmode_delay is not None:
                 if slowmode_delay < 0 or slowmode_delay > 21600:
                     raise commands.CommandError("Please choose a delay between 0 and 21600 seconds.")
@@ -284,28 +282,28 @@ class Setup(commands.Cog):
             raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
 
     #---------------------------------------------------------------------------------
-    
+
     @commands.group(name='voicechannel', help='Create, edit or delete a VoiceChannel.', aliases=['vc'])
     async def _voicechannel(self, ctx):
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
-    
+
     @_voicechannel.command(name='create', help='Create a VoiceChannel.')
     @commands.has_permissions(manage_messages=True)
-    async def _voicecreate(self, ctx, name="Voice Channel", category:discord.CategoryChannel=None, user_limit:int=None, position:int=None, bitrate
+    async def _voicecreate(self, ctx, name="Voice Channel", category:discord.CategoryChannel=None, user_limit:int=None, position:int=None, bitrate:int=None):
         #Check if the Voice Channel requested is valid and can be created;
         # - Is there a name more than 1 and less than 100 characters long?
         # - Is the user limit valid? (TBA)
         # - Is the bitrate valid? (TBA)
-                           
+
         if 1 < len(name) < 100:
             c = await ctx.guild.create_voice_channel(name=name, category=category, position=position, user_limit=user_limit, bitrate=bitrate, reason=reason)
             await ctx.send(f"The voice channel {c.mention} has been created!")
         else:
             raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
-    
+
     #---------------------------------------------------------------------------------
-                           
+
     @commands.group(name='categorychannel', help='Create, edit or delete a CategoryChannel.', aliases=['category','cc'])
     async def _categorychannel(self, ctx):
         if ctx.invoked_subcommand is None:
@@ -320,7 +318,7 @@ class Setup(commands.Cog):
             raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
 
     #---------------------------------------------------------------------------------
-                           
+
 def setup(bot):
     bot.add_cog(Admin(bot))
     bot.add_cog(Setup(bot))
