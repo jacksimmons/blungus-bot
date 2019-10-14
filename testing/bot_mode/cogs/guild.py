@@ -26,8 +26,6 @@ class Guild(commands.Cog):
         categories = ''
         features = ''
         
-        self.update_info(ctx)
-        
         #Uses a function in the Base module to convert the list (g.roles) into a string
         roles = Base.convert_long_list(g.roles, 30, 250, g.default_role)
         
@@ -50,28 +48,18 @@ class Guild(commands.Cog):
         embed.set_footer(text=f"Guild ID: {g.id} | Guild Owner: {g.owner} | Guild Owner ID: {g.owner_id} | Shard ID: {g.shard_id} | Chunked: {g.chunked}", icon_url=f"{ctx.author.avatar_url}")
 
         #Syntax: Embed.add_field(name[str], value[str], inline[bool])
-        embed.add_field("Region", g.region) #1: name, value
-        embed.add_field(f"Emoji [Limit: {g.emoji_limit}]", len(g.emojis)) #2: name, value
+        embed.add_field("Region", g.region)
+        embed.add_field(f"Emoji [Limit: {g.emoji_limit}]", len(g.emojis))
         embed.add_field(name=f"Channels [{len(g.channels)}]", value=f"Text: {len(g.text_channels)}, Voice: {len(g.voice_channels)}")
-#4
         embed.add_field(name=f"Members [{len(g.members)}]", value=f"Human: number, Bot: number")
-#5
         embed.add_field(name=f"Tier [Boosters: {len(g.premium_subscribers)}]", value=f"{g.premium_tier}")
-#6
         embed.add_field(name="File Upload Limit", value=f"{g.filesize_limit/1000000}MB")
-#7
         embed.add_field(name="Bitrate Limit", value=f"{g.bitrate_limit/1000} kbps")
-#8
         embed.add_field(name=f"AFK Channel [AFK: {g.afk_timeout/60}m]", value=f"{g.afk_channel}")
-#9
         embed.add_field(name="2FA Level", value=f"{g.mfa_level}")
-#10
         embed.add_field(name="Default Notifications", value=f"{str(g.default_notifications[0]).title()}")
-#11
         embed.add_field(name="Verification Level", value=f"{str(g.verification_level).title()}")
-#12
         embed.add_field(name="Explicit Content Filter", value=f"{str(g.explicit_content_filter).title()}")
-#13
         embed.add_field(name="Extra Info",
         value=f"System Channel: {g.system_channel.mention}, Large Guild: {g.large}, Unavailable: {g.unavailable}",
         inline=False)
@@ -97,5 +85,6 @@ class Guild(commands.Cog):
         inline=False)
 
         await ctx.send(embed=embed)
+
 def setup(bot):
 	bot.add_cog(Guild(bot))
