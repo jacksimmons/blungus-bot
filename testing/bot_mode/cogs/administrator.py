@@ -6,9 +6,6 @@ from base import Base
 dotw = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] #Day of the week
 moty = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] #Month of the year
 
-class MultiBanError(Exception):
-    pass
-
 class Admin(commands.Cog):
 
     def __init__(self, bot):
