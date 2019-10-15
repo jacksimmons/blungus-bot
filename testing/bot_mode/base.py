@@ -1,4 +1,5 @@
 import csv
+import os
 
 class Base:
     #def __init__(self, bot):
@@ -33,6 +34,7 @@ class Base:
         return output
 
     def csv_input_prune(filename): #Removes repeated inputs
+        #os.chdir('../bot_mode') --- Unnecessary as we are already in this directory.
         with open(filename, 'r') as csvdata:
             reader = csv.reader(csvdata)
 

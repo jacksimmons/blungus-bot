@@ -254,6 +254,35 @@ class Setup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.group(name='welcome', help='Customise where and how the welcome messages feature operates.')
+    async def _welcome(self, ctx):
+        if ctx.invoked_subcommand is None:
+            raise commands.BadArgument("Invalid subcommand passed.")
+
+    @_welcome.command(name='setchannel', help='Enables welcome messages in the channel provided.')
+    async def enable_welcome_messages(self, ctx, channel, enable_farewell_messages: bool = False):
+        tc_converter = commands.TextChannelConverter() #Creates a TextChannelConverter object that will convert strings to TextChannels
+        target = await tc_converter.convert(ctx, channel)
+
+        import os
+        os.chdir('../bot_mode')
+
+        with open('data/guilds.json', 'r') as file:
+            data = json.load(file)
+            id = ctx.guild.id
+
+            if str(id) in data:
+                data[str(id)]['welcome_channel'] = target.id #Same outcome whether a 'welcome_channel' already exists in the file or not
+
+            else:
+                data[str(id)] = {}
+                data[str(id)]['welcome_channel'] = target.id
+
+        with open('data/guilds.json', 'w') as outfile:
+            json.dump(data, outfile, indent=4)
+
+    #---------------------------------------------------------------------------------
+
     @commands.group(name='textchannel', help='Create, edit or delete a TextChannel.', aliases=['tc'])
     async def _textchannel(self, ctx):
         if ctx.invoked_subcommand is None:
@@ -309,8 +338,11 @@ class Setup(commands.Cog):
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
 
+    @_categorychannel.command(name='create', help='Create a channel category.')
     @commands.has_permissions(manage_channels=True)
     async def _categorycreate(self, ctx, name: str="Category", reason: str=None):
+        #Check if the Category requested is valid and can be created;
+        # - Is the name in between 1 and 100 characters long?
         if 1 < len(name) < 100:
             c = await ctx.guild.create_category(name=name, reason=reason)
             await ctx.send(f"The category {c.mention} has been created!")
@@ -318,6 +350,7 @@ class Setup(commands.Cog):
             raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
 
     #---------------------------------------------------------------------------------
+
 
 def setup(bot):
     bot.add_cog(Admin(bot))
