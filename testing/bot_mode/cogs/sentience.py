@@ -1,7 +1,7 @@
 import discord
 import random
 import csv
-import os
+import json
 from base import Base
 from discord.ext import commands
 
@@ -23,7 +23,22 @@ class CleverChungus(commands.Cog):
         global speaking_zone
         global msg
 
-        speaking_zone = 586216189517234304
+        import os
+
+        os.chdir('../bot_mode')
+
+        with open('data/guilds.json', 'r') as file: #Determines speaking_zone value; this is set to 0 if a channel was not found in 'guilds.json'
+            data = json.load(file)
+            id = message.guild.id
+
+            if str(id) in data:
+                if 'bot_chat_channel' in data[str(id)]:
+                    speaking_zone = data[str(id)]['bot_chat_channel']
+                else:
+                    speaking_zone = 0
+            else:
+                speaking_zone == 0
+
         log_response = False
         output = None
         is_bot = False
@@ -37,7 +52,6 @@ class CleverChungus(commands.Cog):
             #Sort out the file so that any repeated inputs are merged
 
             file = 'data/responses.csv'
-            os.chdir('../bot_mode')
             Base.check_for_blanks(file)
             Base.csv_input_prune(file)
             Base.csv_output_prune(file)
@@ -48,7 +62,6 @@ class CleverChungus(commands.Cog):
                 prev_skip_value = skip_value
                 if skip_value == 2:
                     if bot == False:
-                        os.chdir('../bot_mode')
                         with open('data/responses.csv', 'a') as csvdata:
                             writer = csv.writer(csvdata)
                             writer.writerow((msg.content, message.content))
@@ -59,7 +72,6 @@ class CleverChungus(commands.Cog):
                 skip_value = 0
 
             if skip_value == 0:
-                os.chdir('../bot_mode')
                 with open('data/responses.csv', 'r') as csvdata:
                     reader = csv.reader(csvdata)
                     for row in reader:
@@ -91,15 +103,59 @@ class CleverChungus(commands.Cog):
             if output is not None:
                 if is_bot == False:
                     if send_output == True:
+                        #output.replace('@everyone', '@ everyone')
+                        #output.replace('@here', '@ here')
                         await message.channel.send(output)
+                        print(output)
                 else:
                     skip_value = prev_skip_value
 
-    @commands.command(name='setbotchannel', help='Sets the channel that the bot will respond to your messages in.')
-    async def _setbotchannel(self, ctx, channel: discord.TextChannel):
-        global speaking_zone
-        speaking_zone = channel.id
-        await ctx.send('Bot channel has been set!')
+    @commands.command(name='setchatchannel', help='Sets the channel that the bot will respond to your messages in.')
+    async def _setchatchannel(self, ctx, channel):
+
+        tc_converter = commands.TextChannelConverter()
+        target = await tc_converter.convert(ctx, channel)
+
+        with open('data/guilds.json', 'r+') as file:
+            #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
+            #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
+            #         [3] https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
+            data = json.load(file)
+            id = ctx.guild.id
+
+            file.seek(0) # Reset file position to the beginning
+
+            if str(id) in data:
+                data[str(id)]['bot_chat_channel'] = target.id
+
+            json.dump(data, file, indent=4)
+
+            file.truncate() #Remove remaining part
+
+        await ctx.send(f'Chat channel has been set to {target.mention}!')
+
+    @commands.command(name='removechatchannel', help='Removes the channel that the bot previously used for responding to your messages in, if there was one.')
+    async def _removechatchannel(self, ctx):
+        with open('data/guilds.json', 'r+') as file: #Determines speaking_zone value; this is set to 0 if a channel was not found in 'guilds.json'
+            #Using 'r+' mode to allow writing and reading to the file.
+            #Sources: see '_setchatchannel' (above)
+            data = json.load(file)
+            id = ctx.guild.id
+
+            file.seek(0) # Reset file position to the beginning
+
+            if str(id) in data:
+                data[str(id)].pop('bot_chat_channel', None)
+                #This removes the need to check if this variable exists;
+                #If there is a 'bot_chat_channel', it will get removed.
+                #If not, it will remove None, which removes nothing.
+                #Source: https://stackoverflow.com/questions/11277432/how-to-remove-a-key-from-a-python-dictionary
+            json.dump(data, file, indent=4)
+
+            file.truncate() # Remove remaining part
+
+        await ctx.send('Chat channel disabled.')
+
 
     @commands.command(name='feed', help='Feeds the bot all of the inputs and responses from a specific channel.')
     @commands.is_owner()
@@ -110,7 +166,6 @@ class CleverChungus(commands.Cog):
         responses = []
 
         if channel != '~':
-            self.tc_converter = commands.TextChannelConverter()
             target = await self.tc_converter.convert(ctx, channel)
         else:
             target = self.bot.get_guild(guild_id).get_channel(channel_id)

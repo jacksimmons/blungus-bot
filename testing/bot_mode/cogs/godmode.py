@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 from datetime import datetime as d
 
+import json
+
 min_messages = 1
 max_messages = 10
 success = True
@@ -116,6 +118,18 @@ class Godmode(commands.Cog):
             await channel.send(message)
             i += 1
         await msg.delete()
+
+
+    @commands.command(name='mess', aliases=['m'])
+    @commands.is_owner()
+    async def mess(self, ctx, *, arg): #Command for testing
+        with open('data.json', 'r') as file:
+            all_data = json.load(file)
+        all_data['guilds']['id'] = {}
+        all_data['guilds']['id']['name'] = arg
+
+        with open('data.json', 'w') as outfile:
+            json.dump(all_data, outfile, indent=4)
 
     #---------------------------------------------------------------------------------
 

@@ -1,5 +1,3 @@
-
-
 from datetime import datetime as d
 #'start' is to be determined as early as possible so module loading times do not affect
 #the load time displayed when the script has loaded.
@@ -8,6 +6,7 @@ start = d.timestamp(d.now())
 #Import the discord module
 import discord
 import random
+import json
 
 #Import 'commands' which allows the creation of commands that are 'invoked' by a certain keyword
 #e.g. 'help', which displays the default help command. This keyword must have the 'prefix' before it
@@ -15,7 +14,7 @@ import random
 #channel that the bot has access to and can send messages to.
 from discord.ext import commands
 
-cogs = ['cogs.basic','cogs.music','cogs.godmode','cogs.administrator','cogs.error_handler','cogs.sentience']
+cogs = ['cogs.basic','cogs.music','cogs.godmode','cogs.administrator','cogs.information','cogs.error_handler','cogs.sentience']
 
 def get_prefix(bot, message):
 
@@ -62,15 +61,39 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    await welcome_channel.send(f'{member} [User ID: {member.id}] has joined {member.guild} [Guild ID: {member.guild.id}]')
+
+    import os
+
+    os.chdir('../bot_mode')
+    with open('data/guilds.json', 'r') as file:
+        theguild = json.load(file)[guild.id]
+
+        if 'welcome_channel' in theguild:
+            try:
+                await member.guild.theguild['welcome_channel'].send(f'{member} [User ID: {member.id}] has joined {member.guild} [Guild ID: {member.guild.id}]')
+            except discord.Forbidden:
+                pass #Nothing we can do about this
 
 @bot.event
 async def on_member_remove(member):
-    print(f'{member} [User ID: {member.id}] has left {member.guild} [Guild ID: {member.guild.id}]')
+
+    import os
+
+    os.chdir('../bot_mode')
+    with open('data/guilds.json', 'r') as file:
+        theguild = json.load(file)[guild.id]
+
+        if 'welcome_channel' in theguild:
+            if 'farewell_enabled' in theguild: #Not required but included just in case
+                if theguild['farewell_messages'] == 'enabled':
+                    try:
+                        await member.guild.theguild['welcome_channel'].send(f'{member} [User ID: {member.id}] has left {member.guild} [Guild ID: {member.guild.id}]')
+                    except discord.Forbidden:
+                        pass #Nothing we can do about this
 
 @bot.event
 async def on_guild_join(guild):
-    await guild.text_channels[0].send(f"I have arrived.")
+    pass
 
 @bot.event
 async def on_command_completion(ctx):
@@ -81,6 +104,7 @@ async def on_command_completion(ctx):
 
 @bot.event
 async def on_message(message):
+    print(message.guild.id)
     if message.author.id != bot.user.id: #This bot's id
         stalk_channel = 'all'
         try:
@@ -91,13 +115,13 @@ async def on_message(message):
 
         await bot.process_commands(message)
 
-    if message.author.id == remove_id: #Removes messages
-        try:
-            if random.randint(1,5) == 5:
-                await message.delete()
-                await bot.get_guild(584487882799054849).get_channel(586216189517234304).send(f"[{message.guild}][<#{message.channel.id}>][{message.author}]: '{message.content}' was deleted.")
-        except discord.Forbidden:
-            await bot.get_guild(584487882799054849).get_channel(586216189517234304).send(f"Chungus was unable to delete [{message.guild}][<#{message.channel.id}>][{message.author}]")
+    #if message.author.id == remove_id: #Removes messages
+    #    try:
+    #        if random.randint(1,5) == 5:
+    #            await message.delete()
+    #            await bot.get_guild(584487882799054849).get_channel(586216189517234304).send(f"[{message.guild}][<#{message.channel.id}>][{message.author}]: '{message.content}' was deleted.")
+    #    except discord.Forbidden:
+    #        await bot.get_guild(584487882799054849).get_channel(586216189517234304).send(f"Chungus was unable to delete [{message.guild}][<#{message.channel.id}>][{message.author}]")
 
     if message.channel.id == master_chat and message.author != bot.user:
         try:
