@@ -26,18 +26,12 @@ def get_prefix(bot, message):
     return commands.when_mentioned_or(*prefixes)(bot, message) #Allow users to mention the bot instead of using a prefix when using a command.
     #Replace with 'return prefixes' to prevent mentions instead of prefix.
 
-max_message_length = 500
-master_chat = 613399504602923009
-stalk_channel = 0
-output_channel = 0
-remove_id = 403633892680138763
-
 # Create a new bot, set the prefix, set the description, set the Owner ID and determine whether the bot is case-sensitive or not.
 bot = commands.Bot(
-    command_prefix=get_prefix,
-    description='Description',
-    owner_id=354995879565852672,
-    case_insensitive=True # The bot is not case-sensitive.
+    command_prefix=get_prefix, # Set the command prefix equal to the prefix defined earlier
+    description='Description', # Set the description to describe what the bot does
+    owner_id=354995879565852672, # Set the Owner ID so the bot knows who the owner is
+    case_insensitive=True # The bot is not case-sensitive
 )
 
 @bot.event
@@ -50,20 +44,13 @@ async def on_ready():
     await bot.change_presence(activity=discord.Activity(name=f'{len(bot.users)*1420} chungas', type=3))
     for cog in cogs:
         bot.load_extension(cog)
-    bot.remove_command('math')
-    bot.remove_command('advancedguildinfo')
-    bot.remove_command('songdesc')
-    bot.remove_command('songinfo')
-    bot.remove_command('localplay')
     channel = ''
     guild = ''
     return
 
 @bot.event
 async def on_member_join(member):
-
     import os
-
     os.chdir('../bot_mode')
     with open('data/guilds.json', 'r') as file:
         theguild = json.load(file)[str(member.guild.id)]
@@ -77,9 +64,7 @@ async def on_member_join(member):
 
 @bot.event
 async def on_member_remove(member):
-
     import os
-
     os.chdir('../bot_mode')
     with open('data/guilds.json', 'r') as file:
         theguild = json.load(file)[str(member.guild.id)]
@@ -92,48 +77,14 @@ async def on_member_remove(member):
                     pass #Nothing we can do about this
 
 @bot.event
-async def on_guild_join(guild):
-    pass
-
-@bot.event
 async def on_command_completion(ctx):
+    #To show users that their request was successful. If the command fails for any reason or if it couldn't be found,
+    #the bot will react with a '!' emote to show that the request was unsuccessful.
     try:
         await ctx.message.add_reaction(emoji='✅')
     except:
         pass
 
-@bot.event
-async def on_message(message):
-    print(message.guild.id)
-    if message.author.id != bot.user.id: #This bot's id
-        stalk_channel = 'all'
-        try:
-            output_channel = int(bot.get_channel(master_chat).topic)
-        except ValueError:
-            pass
-            #await bot.get_channel(master_chat).send("Output channel ID invalid.")
-
-        await bot.process_commands(message)
-
-    #if message.author.id == remove_id: #Removes messages
-    #    try:
-    #        if random.randint(1,5) == 5:
-    #            await message.delete()
-    #            await bot.get_guild(584487882799054849).get_channel(586216189517234304).send(f"[{message.guild}][<#{message.channel.id}>][{message.author}]: '{message.content}' was deleted.")
-    #    except discord.Forbidden:
-    #        await bot.get_guild(584487882799054849).get_channel(586216189517234304).send(f"Chungus was unable to delete [{message.guild}][<#{message.channel.id}>][{message.author}]")
-
-    if message.channel.id == master_chat and message.author != bot.user:
-        try:
-            await bot.get_channel(output_channel).send(message.content)
-        except NameError:
-            await bot.get_channel(master_chat).send("Output Channel is not defined.")
-
-#@bot.command()
-#async def scopeto(ctx):
-#    message = ctx.message
-#    channel = message.channel
-#    await channel.send("Hi")
-#    print(channel)
-
+#The bot-specific token used to log into Discord. A different application will have a different token,
+#and this token is not specific to this code but to the bot account itself (this can change).
 bot.run('NjIxNzQxNTc2OTAwNTc1Mjcz.XZ-K9w.ccbcgQXMxOyO3-OnseQYI2CSSQk', bot=True, reconnect=True)
