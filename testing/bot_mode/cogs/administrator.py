@@ -169,27 +169,37 @@ class Admin(commands.Cog):
         failed_bans = ''
         successful_bans = []
 
+        if delete_message_days < 0:
+            delete_message_days = 0
+            await ctx.send("`delete message days` must be an integer between `0 and 7` inclusive, so it has been set to 0.")
 
+        elif delete_message_days > 7:
+            delete_message_days = 7
+            await ctx.send("`delete message days` must be an integer between `0 and 7` inclusive, so it has been set to 7.")
         for x in range(0,len(who)):
 
             if who[x] not in [BanEntry.user for BanEntry in self.ban_entries]: #Generator to check the user is not already banned
 
                 if who[x] in ctx.guild.members:
+                    mem = await self.m_converter.convert(ctx, str(who[x]))
 
-                    if who[x].id == self.bot.user.id: #We don't want the bot to be able to ban itself
-                        failed_bans += f'\n`{who[x]}: Don\'t make me ban myself!`'
+                    if mem.id == self.bot.user.id: #We don't want the bot to be able to ban itself
+                        failed_bans += f'\n`{mem}: Don\'t make me ban myself!`'
 
-                    elif who[x].id == ctx.author.id: #We don't want the author to be able to ban themself
-                        failed_bans += f'\n`{who[x]}: You cannot ban yourself!`'
+                    elif mem.id == ctx.author.id: #We don't want the author to be able to ban themself
+                        failed_bans += f'\n`{mem}: You cannot ban yourself!`'
 
-                    elif who[x].id == ctx.guild.owner_id: #Nobody can ban the owner, so this prevents related errors from occurring
-                        failed_bans += f'\n`{who[x]}: You can\'t ban the owner of the guild!'
+                    elif mem.id == ctx.guild.owner_id: #Nobody can ban the owner, so this prevents related errors from occurring
+                        failed_bans += f'\n`{mem}: You can\'t ban the owner of the guild!`'
 
-                    elif who[x].top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id: #The ban was successful
-                        successful_bans.append(who[x])
+                    elif mem.top_role >= ctx.guild.get_member(self.bot.user.id).top_role:
+                        failed_bans += f'\n`{mem}: I cannot ban this user.`'
+
+                    elif mem.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id: #The ban was successful
+                        successful_bans.append(mem)
 
                     else: #The author does not have sufficient permissions to ban this user
-                        failed_bans += f'\n`{who[x]}: You are unable to ban someone with an equal or higher rank to you.`'
+                        failed_bans += f'\n`{mem}: You are unable to ban someone with an equal or higher rank to you.`'
 
                 else:
                     #If the user is not a member and exists, the user is able to be banned.
@@ -201,7 +211,8 @@ class Admin(commands.Cog):
 
 
         if successful_bans != []: #If bans have already been successful, the 'content' variable needs to be set (for output).
-            content = f'`Passed: {len(successful_bans)}`\n`{str(successful_bans)}` will be banned.'
+            successful_ban_list = [discord.Member.name for discord.Member in successful_bans]
+            content = f'`Passed: {len(successful_bans)}`\n`{str(successful_ban_list)}` will be banned.'
 
             if reason is not None: #Add the reason on to the end of the string if there is one
                 content = content[:len(content)-1] + f' for `{reason}`.'
@@ -215,10 +226,10 @@ class Admin(commands.Cog):
             content = ''
 
         if failed_bans != '': #If some bans have failed, add them to the content
-            content += f'\n`Failed: {len(who) - len(successful_bans)}`{failed_bans}\n*The above users will not be banned.*\n'
+            content += f'\n`Failed: {len(who) - len(successful_bans)}`{failed_bans}\n'
 
         else: #Otherwise, mention that everything was a success
-            content += 'All ban requests were successful.\n'
+            content += '\nAll ban requests were successful.\n'
 
         #Confirmation that the author wants to ban these users, as this is a very powerful (and potentially dangerous) command.
         #They will need to type in the server name and '~ ban' to confirm this action.
