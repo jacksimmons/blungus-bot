@@ -1,10 +1,15 @@
 {
     "588320053230043136": {
-        "name": "Thats entertainment",
-        "welcome_channel": 618601619596247043,
-        "bot_chat_channel": 588320053708062731
+        "channels": {
+            "chatbot": 588320053708062731,
+            "welcome": 618600882891915281
+        }
     },
     "456203268033478667": {
-        "bot_chat_channel": 577883800231608321
+        "name": "Thats entertainment",
+        "channels": {
+            "welcome": 577883800231608321,
+            "chatbot": 577883800231608321
+        }
     }
 }

@@ -260,26 +260,37 @@ class Setup(commands.Cog):
             raise commands.BadArgument("Invalid subcommand passed.")
 
     @_welcome.command(name='setchannel', help='Enables welcome messages in the channel provided.')
-    async def enable_welcome_messages(self, ctx, channel, enable_farewell_messages: bool = False):
+    async def enable_welcome_messages(self, ctx, channel):
         tc_converter = commands.TextChannelConverter() #Creates a TextChannelConverter object that will convert strings to TextChannels
         target = await tc_converter.convert(ctx, channel)
 
         import os
         os.chdir('../bot_mode')
 
-        with open('data/guilds.json', 'r') as file:
+        with open('data/guilds.json', 'r+') as file:
+            #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
+            #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
+            #         [3] https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
             data = json.load(file)
             id = ctx.guild.id
 
+            file.seek(0) # Reset file position to the beginning
+
             if str(id) in data:
-                data[str(id)]['welcome_channel'] = target.id #Same outcome whether a 'welcome_channel' already exists in the file or not
+                if 'channels' not in data[str(id)]:
+                    data[str(id)]['channels'] = {} #Create a 'welcome' dictionary if one doesn't already exist
+                data[str(id)]['channels']['welcome'] = target.id #Same outcome whether 'welcome_channel' exists already or not
 
             else:
                 data[str(id)] = {}
-                data[str(id)]['welcome_channel'] = target.id
+                data[str(id)]['channels'] = {}
+                data[str(id)]['channels']['welcome'] = target.id
 
-        with open('data/guilds.json', 'w') as outfile:
-            json.dump(data, outfile, indent=4)
+            json.dump(data, file, indent=4)
+
+            file.truncate() #Remove remaining part
+
+        await ctx.send(f'Welcome channel has been set to {target.mention}!')
 
     #---------------------------------------------------------------------------------
 

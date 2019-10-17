@@ -31,13 +31,12 @@ class CleverChungus(commands.Cog):
             data = json.load(file)
             id = message.guild.id
 
+            speaking_zone = None
+
             if str(id) in data:
-                if 'bot_chat_channel' in data[str(id)]:
-                    speaking_zone = data[str(id)]['bot_chat_channel']
-                else:
-                    speaking_zone = 0
-            else:
-                speaking_zone == 0
+                if 'channels' in data[str(id)]:
+                    if 'chatbot' in data[str(id)]['channels']:
+                        speaking_zone = data[str(id)]['channels']['chatbot']
 
         log_response = False
         output = None
@@ -116,6 +115,9 @@ class CleverChungus(commands.Cog):
         tc_converter = commands.TextChannelConverter()
         target = await tc_converter.convert(ctx, channel)
 
+        import os
+        os.chdir('../bot_mode')
+
         with open('data/guilds.json', 'r+') as file:
             #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
             #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
@@ -126,7 +128,13 @@ class CleverChungus(commands.Cog):
             file.seek(0) # Reset file position to the beginning
 
             if str(id) in data:
-                data[str(id)]['bot_chat_channel'] = target.id
+                if 'channels' not in data[str(id)]:
+                    data[str(id)]['channels'] = {}
+                data[str(id)]['channels']['chatbot'] = target.id
+
+            else:
+                data[str(id)]['channels'] = {}
+                data[str(id)]['channels']['chatbot'] = target.id
 
             json.dump(data, file, indent=4)
 
