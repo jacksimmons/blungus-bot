@@ -77,10 +77,12 @@ class CleverChungus(commands.Cog):
                         if row != []:
                             inputs.append(row[0])
                             outputs.append(row[1:])
+
                     if message.content in inputs: #Search for the message in inputs
                         index = inputs.index(message.content)
                         output = outputs[index][random.randint(0,len(outputs[index])-1)]
                         send_output = True
+
                     else: #If the message is not recognised, change the topic and log user's response
                         if is_bot == False:
                             skip_value = 1
@@ -91,6 +93,7 @@ class CleverChungus(commands.Cog):
                 if message.content in inputs:
                     index = inputs.index(message.content)
                     output = outputs[index][random.randint(0,len(outputs[index])-1)]
+                    
                 skip_value = 2 #Increment the skip_value to progress the conversation
                 output = msg.content
                 send_output = True
