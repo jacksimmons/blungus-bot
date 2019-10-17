@@ -47,7 +47,7 @@ async def on_ready():
     print(f'Latency: {bot.latency}')
     print(f'Created at: {bot.user.created_at.hour}:{bot.user.created_at.minute} {bot.user.created_at.day}/{bot.user.created_at.month}/{bot.user.created_at.year}')
     print('---Ready---')
-    await bot.change_presence(activity=discord.Activity(name=f'{len(bot.users)*1337} chungas', type=3))
+    await bot.change_presence(activity=discord.Activity(name=f'{len(bot.users)*1420} chungas', type=3))
     for cog in cogs:
         bot.load_extension(cog)
     bot.remove_command('math')
@@ -66,13 +66,14 @@ async def on_member_join(member):
 
     os.chdir('../bot_mode')
     with open('data/guilds.json', 'r') as file:
-        theguild = json.load(file)[guild.id]
+        theguild = json.load(file)[str(member.guild.id)]
 
-        if 'welcome_channel' in theguild:
-            try:
-                await member.guild.theguild['welcome_channel'].send(f'{member} [User ID: {member.id}] has joined {member.guild} [Guild ID: {member.guild.id}]')
-            except discord.Forbidden:
-                pass #Nothing we can do about this
+        if 'channels' in theguild:
+            if 'welcome' in theguild['channels']:
+                try:
+                    await member.guild.get_channel(theguild['channels']['welcome']).send(f'{member} [{member.mention}] has joined the server.')
+                except discord.Forbidden:
+                    pass #Nothing we can do about this
 
 @bot.event
 async def on_member_remove(member):
@@ -81,15 +82,14 @@ async def on_member_remove(member):
 
     os.chdir('../bot_mode')
     with open('data/guilds.json', 'r') as file:
-        theguild = json.load(file)[guild.id]
+        theguild = json.load(file)[str(member.guild.id)]
 
-        if 'welcome_channel' in theguild:
-            if 'farewell_enabled' in theguild: #Not required but included just in case
-                if theguild['farewell_messages'] == 'enabled':
-                    try:
-                        await member.guild.theguild['welcome_channel'].send(f'{member} [User ID: {member.id}] has left {member.guild} [Guild ID: {member.guild.id}]')
-                    except discord.Forbidden:
-                        pass #Nothing we can do about this
+        if 'channels' in theguild:
+            if 'welcome' in theguild['channels']: #Not required but included just in case
+                try:
+                    await member.guild.get_channel(theguild['channels']['welcome']).send(f'{member} [{member.mention}] has left the server.')
+                except discord.Forbidden:
+                    pass #Nothing we can do about this
 
 @bot.event
 async def on_guild_join(guild):
