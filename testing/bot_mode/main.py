@@ -41,7 +41,7 @@ async def on_ready():
     print(f'Latency: {bot.latency}')
     print(f'Created at: {bot.user.created_at.hour}:{bot.user.created_at.minute} {bot.user.created_at.day}/{bot.user.created_at.month}/{bot.user.created_at.year}')
     print('---Ready---')
-    await bot.change_presence(activity=discord.Activity(name=f'{len(bot.users)*1420} chungas', type=3))
+    await bot.change_presence(activity=discord.Activity(name=f'{len(bot.users)*1420} chungas', status=discord.Status.offline, type=3))
     for cog in cogs:
         bot.load_extension(cog)
     channel = ''
@@ -76,15 +76,6 @@ async def on_member_remove(member):
                 except discord.Forbidden:
                     pass #Nothing we can do about this
 
-@bot.event
-async def on_command_completion(ctx):
-    #To show users that their request was successful. If the command fails for any reason or if it couldn't be found,
-    #the bot will react with a '!' emote to show that the request was unsuccessful.
-    try:
-        await ctx.message.add_reaction(emoji='✅')
-    except:
-        pass
-
 #The bot-specific token used to log into Discord. A different application will have a different token,
 #and this token is not specific to this code but to the bot account itself (this can change).
-bot.run('NjIxNzQxNTc2OTAwNTc1Mjcz.XZ-K9w.ccbcgQXMxOyO3-OnseQYI2CSSQk', bot=True, reconnect=True)
+bot.run('NjIxNzQxNTc2OTAwNTc1Mjcz.Xai_cg.3kCigmde-3FNnxMlq97x-RIBZnk', bot=True, reconnect=True)

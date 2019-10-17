@@ -11,14 +11,14 @@ class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ban_entries = []
-        self.m_converter = None #Will convert from string to discord.Member object type
-        self.u_converter = None #Will convert from string to discord.User object type
+        self.m_converter = None
+        self.u_converter = None
 
     #---------------------------------------------------------------------------------
 
     @commands.command(
         name='rename',
-        description='Changes a user\'s nickname',
+        help='Removes or changes a user\'s nickname',
         aliases=['nick']
     )
 
@@ -26,12 +26,16 @@ class Admin(commands.Cog):
     async def _rename(self, ctx, member, *, nickname=None):
         #This command will by default remove a member's nickname, however if the 'nickname'
         #perameter is provided, the member will be given that nickname.
-        
-        who = await self.m_converter.convert(ctx, member)        
+
+        who = await self.m_converter.convert(ctx, member)
+
         if who.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
-            await who.edit(nick=nickname)
+            if who.id != ctx.guild.owner_id: #Nobody can rename the owner
+                await who.edit(nick=nickname)
+            else:
+                await ctx.send(f'{ctx.author.mention}, you don\'t have permissions to rename this member.')
         else:
-            await ctx.send(f"{ctx.author.mention}, you cannot perform action `{ctx.command}` on a user with an equal or higher top role.")
+            await ctx.send(f"{ctx.author.mention}, you cannot rename a user with an equal or higher top rank to you.")
 
     #---------------------------------------------------------------------------------
 
@@ -43,31 +47,32 @@ class Admin(commands.Cog):
 
     @commands.has_permissions(kick_members=True)
     async def _kick(self, ctx, member, *, reason=None):
+
         #This command will by default kick a member with no reason, however if the 'reason'
         #perameter is provided, then in the log for the member's kick this reason will be provided.
-        
+
         who = await self.m_converter.convert(ctx, member) #Converts the 'member' perameter into a Member object
-        
+
         if who.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
-			if who.id != ctx.guild.owner_id: #Nobody can kick the owner, so this shouldn't be an option.
-				#We don't want the author to be able to kick someone lower than themselves in the role hierarchy,
-				#however if they are the owner of the server they are able to bypass this rule.
-				await ctx.guild.kick(user=who, reason=reason)
-				await ctx.send(f'{who} was kicked for {reason}.\nID: `{who.id}`')
-			else:
-				raise commands.CommandError(f'{ctx.author.mention}, you can\'t kick the owner!')
+            if who.id != ctx.guild.owner_id: #Nobody can kick the owner, so this shouldn't be an option.
+                #We don't want the author to be able to kick someone lower than themselves in the role hierarchy,
+                #however if they are the owner of the server they are able to bypass this rule.
+                await ctx.guild.kick(user=who, reason=reason)
+                await ctx.send(f'{who} was kicked for {reason}.\nID: `{who.id}`')
+            else:
+                await ctx.send(f'{ctx.author.mention}, you don\'t have permissions to kick this member.')
 
         elif who.id == self.bot.user.id:
             #We don't want the bot to be able to kick itself as this may cause unwanted issues
-            raise commands.CommandError(f'I cannot kick myself! If you want me to leave, you can use `{self.bot.command_prefix}leave`.')
+            await ctx.send(f'I cannot kick myself! If you want me to leave, you can use `{self.bot.command_prefix}leave`.')
 
         elif who.id == ctx.author.id:
-			#We don't want members to be able to kick themselves as this may cause issues
-			raise commands.CommandError(f'{ctx.author.mention}, you cannot kick yourself!')
+            #We don't want members to be able to kick themselves as this may cause issues
+            await ctx.send(f'{ctx.author.mention}, you cannot kick yourself!')
 
         else:
 			#If the author is not trying to kick themself and they do not have sufficient permissions to kick the member
-            raise commands.CommandError(f'{ctx.author.mention}, you are unable to kick someone with an equal or higher rank to you.')
+            await ctx.send(f'{ctx.author.mention}, you are unable to kick someone with an equal or higher top rank to you.')
 
     #---------------------------------------------------------------------------------
 
@@ -98,7 +103,7 @@ class Admin(commands.Cog):
                 #In this case, they are just a user and not a member of the guild, so the ban is pre-emptive
 
             except TypeError:
-                raise commands.CommandError("`Invalid User or ID entered.`")
+                await ctx.send("`Invalid User or ID entered.`")
 
         if who not in [BanEntry.user for BanEntry in self.ban_entries]:
             #(Source needed)
@@ -106,36 +111,36 @@ class Admin(commands.Cog):
             #guild.bans list, we need to use a 'generator' to check whether the user is in [a list of users for every BanEntry
             #in the ban entries list].
 
-            if who in ctx.guild.members: 
+            if who in ctx.guild.members:
                 #If the user is a member of the guild, we need to ensure the author is a higher rank than the victim
                 #to prevent abuse of the bot, however if the user is not a member of the guild, this is not an issue.
 
                 if who.id == self.bot.user.id:
                     #We don't want the bot to be able to ban itself as this may cause issues
-                    raise commands.CommandError('Don\'t make me do that!')
+                    await ctx.send('Don\'t make me do that!')
 
                 elif who.id == ctx.author.id:
-					#We don't want the author to be able to ban themselves as this may cause issues
-                    raise commands.CommandError(f'{ctx.author.mention}, you cannot ban yourself!')
-				
-				elif who.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
-					if who.id != ctx.guild.owner_id: #Nobody can ban the owner, so this shouldn't be an option.
+                    #We don't want the author to be able to ban themselves as this may cause issues
+                    await ctx.send(f'{ctx.author.mention}, you cannot ban yourself!')
+
+                elif who.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
+                    if who.id != ctx.guild.owner_id: #Nobody can ban the owner, so this shouldn't be an option.
                         await ctx.guild.ban(user=who, reason=reason, delete_message_days=delete_message_days)
                         s = True
-					else:
-						raise commands.CommandError(f'{ctx.author.mention}, you can\'t ban the owner!')
+                    else:
+                        await ctx.send(f'{ctx.author.mention}, you can\'t ban the owner!')
 
                 else:
-					#The member cannot ban this member as they are lower in the hierarchy
-                    raise commands.CommandError(f'{ctx.author.mention}, you are unable to ban someone with an equal or higher rank to you.')
+                    #The member cannot ban this member as they are lower in the hierarchy
+                    await ctx.send(f'{ctx.author.mention}, you are unable to ban someone with an equal or higher rank to you.')
 
             else:
                 await ctx.guild.ban(user=who, reason=reason, delete_message_days=delete_message_days)
                 s = True
-				
+
             if s == True:
-				#The output for this command is more complex, so the variable 's' is used to determine when
-				#the ban has been [s]uccessful and the output is then determined here.
+                #The output for this command is more complex, so the variable 's' is used to determine when
+                #the ban has been [s]uccessful and the output is then determined here.
                 content = f'`{str(who)}` was banned.'
                 if reason is not None:
                     content = content[:len(content)-1] + f' for `{reason}`.'
@@ -146,7 +151,7 @@ class Admin(commands.Cog):
                 await ctx.send(content)
 
         else:
-            raise commands.CommandError(f'{ctx.author.mention}, this user is already banned.')
+            await ctx.send(f'{ctx.author.mention}, this user is already banned.')
 
     #---------------------------------------------------------------------------------
 
@@ -160,71 +165,69 @@ class Admin(commands.Cog):
     async def _mban(self, ctx, who: commands.Greedy[discord.User], delete_message_days=1, *, reason=None):
 		#This command uses commands.Greedy, which takes in arguments of a certain type until no more are given,
 		#allowing multiple users to be passed into the command at once, so this command is able to ban multiple users at once.
-		
+
         failed_bans = ''
         successful_bans = []
 
-		
+
         for x in range(0,len(who)):
-			
+
             if who[x] not in [BanEntry.user for BanEntry in self.ban_entries]: #Generator to check the user is not already banned
-				
+
                 if who[x] in ctx.guild.members:
-						
+
                     if who[x].id == self.bot.user.id: #We don't want the bot to be able to ban itself
                         failed_bans += f'\n`{who[x]}: Don\'t make me ban myself!`'
 
                     elif who[x].id == ctx.author.id: #We don't want the author to be able to ban themself
                         failed_bans += f'\n`{who[x]}: You cannot ban yourself!`'
 
-					elif who[x].id == ctx.guild.owner_id: #Nobody can ban the owner, so this prevents related errors from occurring
-						failed_bans += f'\n`{who[x]}: You can\'t ban the owner of the guild!'
-					
-					elif who[x].top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id: #The ban was successful
-						successful_bans.append(who[x])
-					
-					else: #The author does not have sufficient permissions to ban this user
-						failed_bans += f'\n`{who[x]}: You are unable to ban someone with an equal or higher rank to you.`'
+                    elif who[x].id == ctx.guild.owner_id: #Nobody can ban the owner, so this prevents related errors from occurring
+                        failed_bans += f'\n`{who[x]}: You can\'t ban the owner of the guild!'
+
+                    elif who[x].top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id: #The ban was successful
+                        successful_bans.append(who[x])
+
+                    else: #The author does not have sufficient permissions to ban this user
+                        failed_bans += f'\n`{who[x]}: You are unable to ban someone with an equal or higher rank to you.`'
 
                 else:
-					#If the user is not a member and exists, the user is able to be banned.
-					
+                    #If the user is not a member and exists, the user is able to be banned.
                     await ctx.guild.ban(user=who[x], reason=reason, delete_message_days=delete_message_days)
                     successful_bans.append(who[x])
-					
+
             else: #Otherwise, the member has already been banned.
                 failed_bans += f'`{who[x]}: This user is already banned.`'
-        
-		
-		if successful_bans != []: #If bans have already been successful, the 'content' variable needs to be set (for output).
-			
+
+
+        if successful_bans != []: #If bans have already been successful, the 'content' variable needs to be set (for output).
             content = f'`Passed: {len(successful_bans)}`\n`{str(successful_bans)}` will be banned.'
-			
+
             if reason is not None: #Add the reason on to the end of the string if there is one
                 content = content[:len(content)-1] + f' for `{reason}`.'
 
             content += f'\nThe past `{delete_message_days} days` of messages for these members will be deleted.'
-			
+
             if str([discord.Member.id for discord.Member in successful_bans]) != []: #Generator to check if the User ID list is empty
                 content += f'\nUser IDs: `{str([discord.Member.id for discord.Member in successful_bans])}`'
-				
+
         else: #Otherwise, set the content to empty
             content = ''
-			
+
         if failed_bans != '': #If some bans have failed, add them to the content
             content += f'\n`Failed: {len(who) - len(successful_bans)}`{failed_bans}\n*The above users will not be banned.*\n'
-			
+
         else: #Otherwise, mention that everything was a success
             content += 'All ban requests were successful.\n'
-			
-		#Confirmation that the author wants to ban these users, as this is a very powerful (and potentially dangerous) command.
-		#They will need to type in the server name and '~ ban' to confirm this action.
-			
+
+        #Confirmation that the author wants to ban these users, as this is a very powerful (and potentially dangerous) command.
+        #They will need to type in the server name and '~ ban' to confirm this action.
+
         content += f'**WARNING: This action is irreversible. Are you sure you want to ban these {len(successful_bans)} users? **[Type in "`the name of this server` ~ ban" to confirm]'
         await ctx.send(content) #Sends the output
 
-        def check(msg): 
-			#Returns a boolean as to whether the author is the same or not
+        def check(msg):
+            #Returns a boolean as to whether the author is the same or not
             return msg.author == ctx.author
 
         msg = await self.bot.wait_for('message', check=check)
@@ -232,13 +235,14 @@ class Admin(commands.Cog):
         if msg.content != f'{ctx.guild.name} ~ ban':
             #This could be an else statement beneath the ban if statement, and is completely inefficient and pointless, but
             #just in case, this is placed above the if statement to ensure no accidental multibans occur.
-            raise commands.CommandError("`Operation cancelled.`")
+            await ctx.send("`Operation cancelled.`")
 
         if msg.content == f'{ctx.guild.name} ~ ban':
             for x in range(0,len(successful_bans)):
                 await ctx.guild.ban(user=successful_bans[x], reason=reason, delete_message_days=delete_message_days)
-			await ctx.send(str(len(successful_bans)) + ' users were successfully banned.')
+            await ctx.send(str(len(successful_bans)) + ' users were successfully banned.')
 
+    #---------------------------------------------------------------------------------
 
     @commands.command(
         name='unban',
@@ -258,16 +262,25 @@ class Admin(commands.Cog):
             await ctx.send(content)
 
         else:
-            raise commands.CommandError(f'{ctx.author.mention}, this user is not currently banned.')
+            await ctx.send(f'{ctx.author.mention}, this user is not currently banned.')
 
+    #---------------------------------------------------------------------------------
+
+    @_kick.before_invoke
     @_ban.before_invoke
-    @_unban.before_invoke
     @_mban.before_invoke
+    @_unban.before_invoke
     async def check_ban_entries(self, ctx):
         self.ban_entries = await ctx.guild.bans()
+
+    @_rename.before_invoke
+    @_kick.before_invoke
+    @_ban.before_invoke
+    @_mban.before_invoke
+    @_unban.before_invoke
+    async def get_converters(self, ctx):
         self.u_converter = commands.UserConverter()
         self.m_converter = commands.MemberConverter()
-        print(self.ban_entries)
 
     #@commands.command(
     #    name='leave',
@@ -349,16 +362,16 @@ class Setup(commands.Cog):
         if 1 < len(name) < 100:
             if topic is not None:
                 if len(topic) > 1024:
-                    raise commands.CommandError("Please choose a channel topic that is 1024 or less characters in length.")
+                    await ctx.send("Please choose a channel topic that is 1024 or less characters in length.")
 
             if slowmode_delay is not None:
                 if slowmode_delay < 0 or slowmode_delay > 21600:
-                    raise commands.CommandError("Please choose a delay between 0 and 21600 seconds.")
+                    await ctx.send("Please choose a delay between 0 and 21600 seconds.")
 
             c = await ctx.guild.create_text_channel(name=name, position=position, slowmode_delay=slowmode_delay, nsfw=nsfw, topic=topic, category=category, reason=reason)
             await ctx.send(f"The text channel {c.mention} has been created!")
         else:
-            raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
+            await ctx.send("Please choose a name between 1 and 100 characters in length.")
 
     #---------------------------------------------------------------------------------
 
@@ -379,7 +392,7 @@ class Setup(commands.Cog):
             c = await ctx.guild.create_voice_channel(name=name, category=category, position=position, user_limit=user_limit, bitrate=bitrate, reason=reason)
             await ctx.send(f"The voice channel {c.mention} has been created!")
         else:
-            raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
+            await ctx.send("Please choose a name between 1 and 100 characters in length.")
 
     #---------------------------------------------------------------------------------
 
@@ -397,7 +410,7 @@ class Setup(commands.Cog):
             c = await ctx.guild.create_category(name=name, reason=reason)
             await ctx.send(f"The category {c.mention} has been created!")
         else:
-            raise commands.CommandError("Please choose a name between 1 and 100 characters in length.")
+            await ctx.send("Please choose a name between 1 and 100 characters in length.")
 
     #---------------------------------------------------------------------------------
 
