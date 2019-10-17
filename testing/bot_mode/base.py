@@ -1,5 +1,8 @@
 import csv
 import os
+import discord
+
+from discord.ext import commands
 
 class Base:
     #def __init__(self, bot):
@@ -7,7 +10,7 @@ class Base:
 
     #Method used to convert a large list into a neat string with the given constraints, converting
     #each member of the list from data to data.name for the purpose of the discord bot.
-    def convert_long_list(list, max_individual_length, max_total_length, end_data):
+    async def convert_long_list(list, max_individual_length, max_total_length, end_data):
 
     #'end_data' is the piece of data which is skipped to when the string becomes greater than
     #or equal to max_total_length and the rest of the list is ignored.
@@ -33,7 +36,7 @@ class Base:
 
         return output
 
-    def csv_input_prune(filename): #Removes repeated inputs
+    async def csv_input_prune(filename): #Removes repeated inputs
         #os.chdir('../bot_mode') --- Unnecessary as we are already in this directory.
         with open(filename, 'r') as csvdata:
             reader = csv.reader(csvdata)
@@ -74,7 +77,7 @@ class Base:
             for row in rows:
                 writer.writerow(row)
 
-    def csv_output_prune(filename): #Removes repeated outputs
+    async def csv_output_prune(filename): #Removes repeated outputs
         with open(filename, 'r') as csvdata:
             reader = csv.reader(csvdata)
 
@@ -108,7 +111,7 @@ class Base:
             for row in rows:
                 writer.writerow(row)
 
-    def check_for_blanks(filename):
+    async def check_for_blanks(filename):
         with open(filename, 'r') as csvdata:
             reader = csv.reader(csvdata)
 

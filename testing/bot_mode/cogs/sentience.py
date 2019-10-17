@@ -51,9 +51,9 @@ class CleverChungus(commands.Cog):
             #Sort out the file so that any repeated inputs are merged
 
             file = 'data/responses.csv'
-            Base.check_for_blanks(file)
-            Base.csv_input_prune(file)
-            Base.csv_output_prune(file)
+            await Base.check_for_blanks(file)
+            await Base.csv_input_prune(file)
+            await Base.csv_output_prune(file)
 
             inputs, outputs = [], []
 

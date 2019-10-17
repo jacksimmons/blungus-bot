@@ -513,7 +513,7 @@ class Basic(commands.Cog):
         if len(message) <= 500:
             await ctx.send(f'"{message}" is {len(message)} characters long.')
         else:
-            await ctx.send(f"That message is over 500 characters long.")
+            await ctx.send(f"That message is {len(message)} characters long.")
 
     #---------------------------------------------------------------------------------
 
