@@ -160,8 +160,8 @@ class Admin(commands.Cog):
         help='Bans multiple users at once (use with caution)'
     )
 
-    @commands.has_permissions(administrator=True)
-    @commands.bot_has_permissions(administrator=True) #We don't want the bot being able to ban multiple people with just ban_members
+    @commands.has_permissions(administrator=True) #We don't want members able to ban multiple people with just ban_members
+    @commands.bot_has_permissions(ban_members=True)
     async def _mban(self, ctx, who: commands.Greedy[discord.User], delete_message_days=1, *, reason=None):
 		#This command uses commands.Greedy, which takes in arguments of a certain type until no more are given,
 		#allowing multiple users to be passed into the command at once, so this command is able to ban multiple users at once.
@@ -181,25 +181,25 @@ class Admin(commands.Cog):
             if who[x] not in [BanEntry.user for BanEntry in self.ban_entries]: #Generator to check the user is not already banned
 
                 if who[x] in ctx.guild.members:
-                    mem = await self.m_converter.convert(ctx, str(who[x]))
+                    member = await self.m_converter.convert(ctx, str(who[x]))
 
-                    if mem.id == self.bot.user.id: #We don't want the bot to be able to ban itself
-                        failed_bans += f'\n`{mem}: Don\'t make me ban myself!`'
+                    if member.id == self.bot.user.id: #We don't want the bot to be able to ban itself
+                        failed_bans += f'\n`{member}: Don\'t make me ban myself!`'
 
-                    elif mem.id == ctx.author.id: #We don't want the author to be able to ban themself
-                        failed_bans += f'\n`{mem}: You cannot ban yourself!`'
+                    elif member.id == ctx.author.id: #We don't want the author to be able to ban themself
+                        failed_bans += f'\n`{member}: You cannot ban yourself!`'
 
-                    elif mem.id == ctx.guild.owner_id: #Nobody can ban the owner, so this prevents related errors from occurring
-                        failed_bans += f'\n`{mem}: You can\'t ban the owner of the guild!`'
+                    elif member.id == ctx.guild.owner_id: #Nobody can ban the owner, so this prevents related errors from occurring
+                        failed_bans += f'\n`{member}: You can\'t ban the owner of the guild!`'
 
-                    elif mem.top_role >= ctx.guild.get_member(self.bot.user.id).top_role:
-                        failed_bans += f'\n`{mem}: I cannot ban this user.`'
+                    elif member.top_role >= ctx.guild.get_member(self.bot.user.id).top_role:
+                        failed_bans += f'\n`{member}: I cannot ban this user.`'
 
-                    elif mem.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id: #The ban was successful
-                        successful_bans.append(mem)
+                    elif member.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id: #The ban was successful
+                        successful_bans.append(member)
 
                     else: #The author does not have sufficient permissions to ban this user
-                        failed_bans += f'\n`{mem}: You are unable to ban someone with an equal or higher rank to you.`'
+                        failed_bans += f'\n`{member}: You are unable to ban someone with an equal or higher rank to you.`'
 
                 else:
                     #If the user is not a member and exists, the user is able to be banned.
@@ -234,8 +234,12 @@ class Admin(commands.Cog):
         #Confirmation that the author wants to ban these users, as this is a very powerful (and potentially dangerous) command.
         #They will need to type in the server name and '~ ban' to confirm this action.
 
-        content += f'**WARNING: This action is irreversible. Are you sure you want to ban these {len(successful_bans)} users? **[Type in "`the name of this server` ~ ban" to confirm]'
-        await ctx.send(content) #Sends the output
+        if successful_bans != []:
+            content += f'**WARNING: This action is irreversible. Are you sure you want to ban these {len(successful_bans)} users? **[Type in "`{ctx.guild.name}` yes" to confirm]'
+            await ctx.send(content) #Sends the output
+
+        else:
+            raise commands.CommandError('Cancelling - every ban request failed.')
 
         def check(msg):
             #Returns a boolean as to whether the author is the same or not
@@ -243,7 +247,7 @@ class Admin(commands.Cog):
 
         msg = await self.bot.wait_for('message', check=check)
 
-        if msg.content != f'{ctx.guild.name} ~ ban':
+        if msg.content != f'{ctx.guild.name} yes':
             #This could be an else statement beneath the ban if statement, and is completely inefficient and pointless, but
             #just in case, this is placed above the if statement to ensure no accidental multibans occur.
             await ctx.send("`Operation cancelled.`")
