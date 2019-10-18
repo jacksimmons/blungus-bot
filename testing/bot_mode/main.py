@@ -14,7 +14,7 @@ import json
 #channel that the bot has access to and can send messages to.
 from discord.ext import commands
 
-cogs = ['cogs.basic','cogs.music','cogs.godmode','cogs.administrator','cogs.information','cogs.error_handler','cogs.sentience']
+cogs = ['cogs.miscellaneous','cogs.music','cogs.godmode','cogs.administrator','cogs.information','cogs.error_handler','cogs.sentience']
 
 def get_prefix(bot, message):
 
@@ -75,6 +75,15 @@ async def on_member_remove(member):
                     await member.guild.get_channel(theguild['channels']['welcome']).send(f'{member} [{member.mention}] has left the server.')
                 except discord.Forbidden:
                     pass #Nothing we can do about this
+
+@bot.event
+async def on_message(message):
+    if message.guild.me.permissions_in(message.channel).send_messages == True:
+        #This code checks whether the bot has the permission 'send messages' in the current channel
+        #If the bot can see this message, then it must have the 'read messages' command.
+        await bot.process_commands(message)
+        #It can be assumed that if a member doesn't want the bot to talk in their channel, then they won't
+        #want commands to be able to be used from that channel.
 
 #The bot-specific token used to log into Discord. A different application will have a different token,
 #and this token is not specific to this code but to the bot account itself (this can change).

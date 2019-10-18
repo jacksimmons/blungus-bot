@@ -54,6 +54,33 @@ class YTDLSource(discord.PCMVolumeTransformer):
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.source_channel = None
+        self.bound_member = None
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        guild = member.guild
+        if guild.voice_client is not None:
+            if guild.voice_client.channel is not None:
+                print(guild.voice_client.channel.name)
+                if before.channel != after.channel:
+                    if member == self.bound_member:
+                        if after.channel is None:
+                            await guild.voice_client.disconnect()
+                            await self.source_channel.send("You disconnected from voice, so I am no longer bound to you.")
+                            self.bound_member = None
+                        elif guild.me.permissions_in(after.channel).connect is True and guild.me.permissions_in(after.channel).speak is True:
+                            await guild.voice_client.move_to(after.channel)
+                        else:
+                            await self.source_channel.send(f"{member.name}: I can't join that channel; waiting here...")
+                    elif guild.voice_client.is_playing():
+                        if before.channel == guild.voice_client.channel: #i.e. if they moved out of the bot's current channel
+                            channel_members = guild.voice_client.channel.members # This is for code simplification
+                            if len(channel_members) == 1 and guild.me in channel_members: #Check the bot is alone
+                                await guild.voice_client.disconnect()
+                                await self.source_channel.send("All members have left the voice chat, so the player has stopped.")
+                            else:
+                                await self.source_channel.send("I was disconnected from voice, so the player has stopped.")
 
     @commands.command()
     async def join(self, ctx, *, channel: discord.VoiceChannel = None):
@@ -65,12 +92,23 @@ class Music(commands.Cog):
                     return await ctx.voice_client.move_to(ctx.author.voice.channel)
                 else:
                     return commands.CommandError("You are not currently connected to a voice channel.")
-            await ctx.author.voice.channel.connect()
+            else:
+                await ctx.author.voice.channel.connect()
 
         else:
             if ctx.voice_client is not None:
                 return await ctx.voice_client.move_to(channel)
             await channel.connect()
+
+    @commands.command()
+    async def play(self, ctx, *, url):
+        """Plays from a url (almost anything youtube_dl supports)"""
+        async with ctx.typing():
+            player = await YTDLSource.from_url(url, loop=self.bot.loop)
+            ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
+
+            await ctx.send(f'''>>> **Now playing: `{player.title}` by `{player.data.get('uploader')}`
+Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **''')
 
     @commands.command()
     async def localplay(self, ctx, *, query):
@@ -96,9 +134,6 @@ class Music(commands.Cog):
         if ctx.voice_client.is_playing() == True:
             ctx.voice_client.pause()
 
-            global play_message
-            if play_message is not None:
-                await play_message.edit(content=f"**Now Playing** (Paused by {ctx.author.mention})")
             await ctx.send("The player is now **paused**. Use **resume** to unpause.")
 
         else:
@@ -110,125 +145,68 @@ class Music(commands.Cog):
         if ctx.voice_client.is_paused() == True:
             ctx.voice_client.resume()
 
-            global play_message
-            if play_message is not None:
-                await play_message.edit(content="**Now Playing**")
             await ctx.send("**Resumed**")
         else:
             raise commands.CommandError("The music is not currently paused.")
 
-    @commands.command()
+    @commands.command(name='volume', aliases=['v','vol'])
     async def volume(self, ctx, volume: int):
         """Changes the player's volume"""
 
         if ctx.voice_client is None:
-            return await ctx.send("Not connected to a voice channel.")
+            raise commands.CommandError("No music currently playing.")
 
-        if 0 < volume < 150:
-            await ctx.send(f"Changed volume to {volume}%")
-        elif volume >= 150:
-            await ctx.send(f"Changed volume to 150% (Maximum)")
-            volume = 150
-        else:
-            await ctx.send(f"Changed volume to 0% (Minimum)")
-            volume = 0
+        elif ctx.author.voice == ctx.voice_client.channel:
+            if 0 < volume < 200:
+                await ctx.send(f"Changed volume to {volume}%")
+            elif volume >= 200:
+                await ctx.send(f"Changed volume to 200% (Maximum)")
+                volume = 200
+            else:
+                await ctx.send(f"Changed volume to 0% (Minimum)")
+                volume = 0
 
-        ctx.voice_client.source.volume = volume / 100
-
-    @commands.command()
-    async def play(self, ctx, *, url):
-        """Plays from a url (almost anything youtube_dl supports)"""
-        async with ctx.typing():
-            global player
-            player = await YTDLSource.from_url(url, loop=self.bot.loop)
-            print(player.data)
-            ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
-
-        if ctx.guild.get_member(self.bot.user.id).permissions_in(ctx.channel).value & 0x4000 == 0x4000:
-            embed = discord.Embed(color=0xff0000, url=player.data.get('webpage_url'))
-            embed.set_author(name="YouTube", icon_url=ctx.author.avatar_url)
-            embed.set_footer(text=f"👁️{player.data.get('view_count')}👍{player.data.get('like_count')}👎{player.data.get('dislike_count')}")
-            embed.set_thumbnail(url=player.data.get('thumbnail'))
-
-            embed.add_field(name=f"{player.data.get('uploader')}", value=f"[{player.title}]({player.data.get('webpage_url')})")
-            embed.add_field(name="Duration", value=str(datetime.timedelta(seconds=player.data.get('duration'))))
-
-            global play_message
-            play_message = await ctx.send(content="**Now Playing**", embed=embed)
+            ctx.voice_client.source.volume = volume / 100
 
         else:
-            play_message = None
-            await ctx.send(
-            f'''>>> **Now playing: `{player.title}` by `{player.data.get('uploader')}`
-            Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **''')
-
+            raise commands.CommandError("There was an error handling your request.")
 
     @commands.command()
+    async def bind(self, ctx):
+        """Binds the music bot to you, so when you join a new voice channel, it will follow you.
+        While you are the bound member, you have a lot of control over the bot's voice status."""
 
-    async def yt(self, ctx, *, url):
+        if ctx.author.voice is not None:
 
-        """Plays from a url (almost anything youtube_dl supports)"""
+            if ctx.voice_client is not None:
+                await ctx.voice_client.move_to(ctx.author.voice.channel)
+            else:
+                await ctx.author.voice.channel.connect()
 
-        async with ctx.typing():
-            global player
-            player = await YTDLSource.from_url(url, loop=self.bot.loop)
-            ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
-        await ctx.send('Now playing: {}'.format(player.title))
+            self.bound_member = ctx.author
+            self.source_channel = ctx.channel
 
-    @commands.command()
-    async def songinfo(self, ctx):
-        """Displays some info about the song"""
-        if player is not None:
-            if ctx.guild.get_member(self.bot.user.id).permissions_in(ctx.channel).value & 0x4000 == 0x4000:
-                embed = discord.Embed(color=0xff0000)
-                embed.set_author(name=player.data.get('title'), icon_url=ctx.author.avatar_url)
-                embed.set_footer(text=f"👁️{player.data.get('view_count')}👍{player.data.get('like_count')}👎{player.data.get('dislike_count')}")
-                embed.set_thumbnail(url=player.data.get('thumbnail'))
-
-                embed.add_field(name="Webpage Link", value=f"[{player.title}]({player.data.get('webpage_url')})")
-
-                embed.add_field(name="Uploader", value=f"{player.data.get('uploader')}")
-                embed.add_field(name="Duration", value=str(datetime.timedelta(seconds=player.data.get('duration'))))
-
-                upload_date = player.data.get('upload_date')
-
-                embed.add_field(name="Categories", value=f"{player.data.get('categories')}")
-                embed.add_field(name="Average Rating", value=f"{player.data.get('average_rating')}/5")
-                embed.add_field(name="Upload Date", value=f"{upload_date[6:8]}/{upload_date[4:6]}/{upload_date[0:4]}")
-
-                embed.add_field(name="Tags", value=f"{player.data.get('tags')}", inline=False)
-
-                await ctx.send(embed=embed)
+            await ctx.send(f"I am now bound to you, {ctx.author.name}. If you **disconnect**, I will become unbound from you, but feel free to **move** from one voice channel to another.")
         else:
-            raise commands.CommandError("No music is currently being played.")
+            raise commands.CommandError("You aren't connected to a voice channel.")
 
     @commands.command()
-    async def songdesc(self, ctx):
-        """Displays the description of the YouTube video"""
-        exited = False
-        x = 0
-        descriptions = []
-        if player is not None:
-            if ctx.guild.get_member(self.bot.user.id).permissions_in(ctx.channel).value & 0x4000 == 0x4000:
+    async def unbind(self, ctx):
+        """Unbinds any bound member that may exist."""
 
-                description = player.data.get('description')
-                while exited != True:
-                    descriptions.append(description[x:x+1024])
-                    if len(description) >= x + 1024:
-                        x += 1024
-                    else:
-                        exited = True
-
-                for y in range(0, len(descriptions)):
-                    embed = discord.Embed(color=0xff0000)
-                    embed.set_author(name=player.title)
-                    embed.set_thumbnail(url=player.data.get('thumbnail'))
-                    embed.add_field(name=f"Page {y+1}", value=descriptions[y])
-                    await ctx.send(embed=embed)
+        self.bound_member = None
+        await ctx.send("I am no longer bound to anyone.")
 
     @commands.command()
     async def leave(self, ctx):
         """Stops and disconnects the bot from voice"""
+
+        if self.bound_member != None:
+            await ctx.send(f"I am no longer bound to {ctx.author.name}.")
+            self.bound_member = None
+
+        if ctx.voice_client.is_playing():
+            await ctx.send("The player has stopped.")
 
         await ctx.voice_client.disconnect()
 
@@ -237,28 +215,53 @@ class Music(commands.Cog):
         help='Moves a member into a different voice channel.'
     )
 
-    @commands.has_permissions(administrator=True)
-    async def v_move(self, ctx, member: discord.Member, channel: discord.VoiceChannel=None):
-        print(ctx.guild.get_member_named("Chungus").guild_permissions.value & 0x1000000 == 0x1000000)
-        if member.voice is not None:
-            await member.move_to(channel)
+    async def v_move(self, ctx, member: discord.Member, *, channel: discord.VoiceChannel):
+        if ctx.author.permissions_in(ctx.author.voice.channel).move_members == True:
+            if member.voice is not None:
+                await member.move_to(channel)
+            else:
+                raise commands.CommandError("This member is not currently connected to any voice channel.")
         else:
-            raise commands.CommandError("This member is not currently connected to any voice channel.")
+            raise commands.CommandError("You do not have the `move members` permission required for this command.")
+
+    @commands.command(
+        name='pull',
+        help='Pulls a member into your current voice channel.',
+        aliases=['summon']
+    )
+
+    async def _pull(self, ctx, member: discord.Member):
+        if ctx.author.permissions_in(ctx.author.voice.channel).move_members == True:
+            if member.voice is not None:
+                await member.move_to(ctx.author.voice.channel)
+            else:
+                raise commands.CommandError("This member is not currently connected to any voice channel.")
+        else:
+            raise commands.CommandError("You do not have the `move members` permission required for this command.")
 
     @localplay.before_invoke
     @play.before_invoke
     @stream.before_invoke
 
     async def ensure_voice(self, ctx):
-        if ctx.voice_client is None:
-            if ctx.author.voice:
-                await ctx.author.voice.channel.connect()
+        if ctx.author.voice:
+            if ctx.guild.me.permissions_in(ctx.author.voice.channel).connect == True:
+                if ctx.guild.me.permissions_in(ctx.author.voice.channel).speak == True:
+                    if ctx.voice_client is None:
+                        await ctx.author.voice.channel.connect()
+                    else:
+                        if ctx.voice_client.is_playing():
+                            ctx.voice_client.stop()
+                        await ctx.voice_client.move_to(ctx.author.voice.channel)
+                else:
+                    raise commands.CommandError(f"{ctx.author.name}, I am not permitted to play audio in that channel.")
             else:
-                await ctx.send("You are not connected to a voice channel.")
-                raise commands.CommandError("Author not connected to a voice channel.")
+                raise commands.CommandError(f"{ctx.author.name}, I am not permitted to join that channel.")
 
-        elif ctx.voice_client.is_playing():
-            ctx.voice_client.stop()
+        else:
+            raise commands.CommandError("You are not connected to a voice channel.")
+
+        self.source_channel = ctx.channel
 
 def setup(bot):
     bot.add_cog(Music(bot))
