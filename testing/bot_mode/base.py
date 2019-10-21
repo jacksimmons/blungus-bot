@@ -16,7 +16,7 @@ class Base:
     #or equal to max_total_length and the rest of the list is ignored.
     #Example: list[:max_total_length] + '...' + end_data
     #If this limit is not reached, 'end_data' is not used.
-    
+
         if end_data is None: #If the end_data is undefined, set it to the final item in the list
             if len(list) > 1: #Don't want this data to be displayed twice
                 end_data = list[len(list)-1]
@@ -37,7 +37,7 @@ class Base:
             elif len(output) >= max_total_length:
                 output += f' ... {end_data[:max_individual_length]}'
                 if len(end_data) > max_individual_length:
-					output += '(...)'
+                    output += '(...)'
                 break
 
         return output
