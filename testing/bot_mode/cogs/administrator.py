@@ -4,15 +4,158 @@ from discord.ext import commands
 
 from base import Base
 
-dotw = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] #Days of the week
-moty = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] #Months of the year
-
 class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ban_entries = []
         self.m_converter = None
         self.u_converter = None
+
+    #---------------------------------------------------------------------------------
+
+    @commands.group(
+        name='tags',
+        help='List, create or delete tags in this guild.',
+        invoke_without_command=True
+    )
+
+    async def _tags(self, ctx):
+
+        import os
+        os.chdir('../bot_mode')
+
+        with open('data/guilds.json', 'r') as file:
+            data = json.load(file)
+            id = ctx.guild.id
+
+            file.seek(0)
+
+            if str(id) in data:
+                if 'tags' in data[str(id)]:
+
+                    content = ''
+
+                    for tag in data[str(id)]['tags']:
+                        if content == '':
+                            content = tag
+                        else:
+                            content += f', {tag}'
+
+                    if len(content) >= 1024:
+                        content = content[:1000] + ' ...'
+
+                    embed = discord.Embed(colour=0x100000)
+                    embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon_url)
+                    embed.add_field(name="Tags", value=content, inline=False)
+
+                    await ctx.send(embed=embed)
+
+                else:
+                    raise commands.CommandError(ctx.author.mention + ', no tags have been created yet for this guild.')
+            else:
+                raise commands.CommandError(ctx.author.mention + ', no data is being stored for this guild (this includes tags).')
+
+    #---------------------------------------------------------------------------------
+
+    @_tags.command(name='create')
+    async def _tagcreate(self, ctx, name, *, value):
+        """Create a tag."""
+
+        if len(name) <= 30:
+
+            import os
+            os.chdir('../bot_mode')
+
+            with open('data/guilds.json', 'r+') as file:
+
+                #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
+                #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
+                #         [3] https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
+                data = json.load(file)
+                id = ctx.guild.id
+
+                file.seek(0) # Reset file position to the beginning
+
+                if str(id) not in data:
+                    data[str(id)] = {}
+                if 'tags' not in data[str(id)]:
+                    data[str(id)]['tags'] = {}
+                if name not in data[str(id)]['tags']:
+                    data[str(id)]['tags'][name] = value
+                    json.dump(data, file, indent=4)
+                    file.truncate() #Remove remaining part
+                else:
+                    raise commands.CommandError(f"Tag `{name}` already exists.")
+
+            if len(value) < 500:
+                await ctx.send(f"Tag `{name}` has been created.")
+            else:
+                await ctx.send("That tag has been created.")
+
+        else:
+            raise commands.CommandError(f"{ctx.author.mention}, tag names can be a maximum of 30 characters long.")
+
+    @_tags.command(name='delete')
+    async def _tagdelete(self, ctx, *, name):
+        """Delete a tag."""
+
+        with open('data/guilds.json', 'r+') as file:
+
+            #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
+            #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
+            #         [3] https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
+            data = json.load(file)
+            id = ctx.guild.id
+
+            file.seek(0) # Reset file position to the beginning
+
+            if str(id) not in data:
+                data[str(id)] = {}
+            if 'tags' not in data[str(id)]:
+                data[str(id)]['tags'] = {}
+            if name in data[str(id)]['tags']:
+                data[str(id)]['tags'].pop(name, None)
+                #This removes the need to check if this variable exists;
+                #If there is a {tag name}, it will get removed.
+                #If not, it will remove None, which removes nothing.
+                #Source: https://stackoverflow.com/questions/11277432/how-to-remove-a-key-from-a-python-dictionary
+                json.dump(data, file, indent=4)
+                file.truncate() #Remove remaining part
+            else:
+                raise commands.CommandError(f"Invalid tag name: Tag `{name}` does not exist.")
+
+        await ctx.send(f"Tag `{name}` has been deleted.")
+
+    #---------------------------------------------------------------------------------
+
+    @commands.command(
+        name='tag',
+        help='Displays one of the guild\'s tags.',
+    )
+
+    async def _tag(self, ctx, *, name):
+
+        import os
+        os.chdir('../bot_mode')
+
+        with open('data/guilds.json', 'r') as file:
+            #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
+            #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
+            #         [3] https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
+            data = json.load(file)
+            id = ctx.guild.id
+
+            file.seek(0) # Reset file position to the beginning
+
+            if str(id) not in data:
+                data[str(id)] = {}
+                raise commands.CommandError(ctx.author.name + ": No tags have been created yet. Use the `tags` command group to add one.")
+            else:
+                if 'tags' not in data[str(id)]:
+                    raise commands.CommandError(ctx.author.name + ": No tags have been created yet. Use the `tags` command group to add one.")
+                else:
+                    if name in data[str(id)]['tags']:
+                        await ctx.send(data[str(id)]['tags'][name])
 
     #---------------------------------------------------------------------------------
 
@@ -252,7 +395,7 @@ class Admin(commands.Cog):
             #just in case, this is placed above the if statement to ensure no accidental multibans occur.
             await ctx.send("`Operation cancelled.`")
 
-        if msg.content == f'{ctx.guild.name} ~ ban':
+        if msg.content == f'{ctx.guild.name} yes':
             for x in range(0,len(successful_bans)):
                 await ctx.guild.ban(user=successful_bans[x], reason=reason, delete_message_days=delete_message_days)
             await ctx.send(str(len(successful_bans)) + ' users were successfully banned.')
