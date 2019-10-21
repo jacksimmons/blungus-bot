@@ -320,6 +320,59 @@ class Admin(commands.Cog):
 class Setup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+											
+	#---------------------------------------------------------------------------------
+	
+	@commands.group(name='invite', help='Interact with or create new instant invites.')
+	async def _invite(self, ctx):
+		if ctx.invoked_subcommand is None:
+            raise commands.BadArgument("Invalid subcommand passed.")
+	
+	@_invite.command(name='create', help='Create an instant invite.')
+	@commands.has_permissions(create_instant_invite=True)
+	async def _invitecreate(self, ctx, channel:discord.TextChannel, max_age:int=0, max_uses:int=0, temporary_membership:bool=False, unique_invite:bool=True, reason=None):   
+		invite = await channel.create_invite(max_age=max_age, max_uses=max_uses, temporary=temporary_membership, unique=unique_invite, reason=reason)
+		await ctx.send(f"Your invite to {channel.mention} has been generated: {str(invite)}!")
+	
+	@_invite.command(name='info', help='Displays information about an Invite.')
+	async def _inviteinfo(self, ctx, invite:discord.Invite)
+											
+		embed = discord.Embed() #Create an embed
+		embed.set_author(name=f'{invite.mention}', avatar_url=ctx.guild.icon_url)
+		embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+		
+		embed.add_field(name='ID', value=invite.id)
+		embed.add_field(name='Channel', value=invite.category)
+		embed.add_field(name='URL', value=invite.url)
+		
+		embed.add_field(name='Inviter', value=invite.inviter.mention)
+		embed.add_field(name='Uses', value=str(invite.uses))
+		embed.add_field(name='Maximum Uses', value=str(invite.max_uses))
+		
+		embed.add_field(name='Created at', value=f'{invite.created_at.day[dotw]} {invite.created_at.day} {invite.created_at.month[moty]} {invite.created_at.year}'
+		embed.add_field(name='Temporary', value=invite.temporary)
+		embed.add_field(name='Revoked', value=invite.revoked)
+
+		if invite.max_age == 0:
+			max_age = 'Never expires'
+		else:
+			max_age = str(invite.max_age)
+						
+		embed.add_field(name='Maximum Age', value=max_age)
+		embed.add_field(name='Code', value=invite.code)
+
+		embed.add_field(name='Approximate Member Count (According to the Invite)', value=invite.approximate_member_count, inline=False)
+		embed.add_field(name='Approximate Online Count (According to the Invite)', value=invite.approximate_presence_count, inline=False)
+		
+		await ctx.send(embed=embed)
+											
+	@_invite.command(name='delete', help='Deletes an Invite.')
+	@commands.has_permissions(manage_channels=True)
+	async def _invitedel(self, ctx, url:discord.Invite, reason=None):
+		await url.delete(reason=reason)
+		await ctx.send("Invite deleted.")
+
+	#---------------------------------------------------------------------------------
 
     @commands.group(name='welcome', help='Customise where and how the welcome messages feature operates.')
     async def _welcome(self, ctx):
@@ -351,7 +404,7 @@ class Setup(commands.Cog):
             else:
                 data[str(id)] = {}
                 data[str(id)]['channels'] = {}
-                data[str(id)]['channels']['welcome'] = target.id
+                data[str(id)]['channels']['welcome'] = target.i
 
             json.dump(data, file, indent=4)
 
@@ -653,7 +706,75 @@ class Setup(commands.Cog):
 	
 	#-----------------------------------------
     #---------------------------------------------------------------------------------
+						
+	@commands.group(name='role', help='Interact with or create new roles.')
+	async def _role(self, ctx):
+		if ctx.invoked_subcommand is None:
+            raise commands.BadArgument("Invalid subcommand passed.")
+	
+	@_role.command(name='create', help='Create a new Role.')
+	@commands.has_permissions(manage_roles=True)
+	async def _rolecreate(self, ctx, name=None, colour:discord.Colour=None, hoist:bool=False, mentionable:bool=False, reason=None):
+		await ctx.guild.create_role(name=name, colour=colour, hoist=hoist, mentionable=mentionable, reason=reason)
+		if len(name) < 100:
+			await ctx.send(f'{role.mention} has been created!')
+		else:
+			await ctx.send('Role has been created!')
+						
+	@_role.command(name='info', help='Display some information about an existing Role.')
+	@commands.has_permissions(manage_roles=True)
+	async def _roleinfo(self, ctx, role:discord.Role):
+											
+		embed = discord.Embed(colour=role.colour) #Create an embed
+		embed.set_author(name=f'Role Info', avatar_url=ctx.guild.icon_url)
+		embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+		
+		if len(role.name) <= 1024:
+			name = role.name
+		else:
+			name = role.name[:1020] + ' ...'
+		embed.add_field(name='Name', value=name)
+		
+		embed.add_field(name='ID', value=role.id)
+		embed.add_field(name='Hoisted', value=role.hoist)
+		embed.add_field(name='Mentionable', value=role.mentionable)
+						
+		embed.add_field(name='Created at', value=f'{role.created_at.day[dotw]} {role.created_at.day} {role.created_at.month[moty]} {role.created_at.year}'
+		embed.add_field(name='Position', value=role.position)
+		embed.add_field(name='Managed', value=role.managed)
+					
+		embed.add_field(name='Colour [Hex]', value=str(role.colour))
+		embed.add_field(name='Colour [Raw]', value=int(role.colour))
+		embed.add_field(name='Colour [RGB]', value=role.colour.to_rgb())
+			
+		permissions = await Base.convert_long_list(role.permissions, 1024, 1024)
+		embed.add_field(name='Permissions', value=permissions)
+		
+		await ctx.send(embed=embed)
+				
+	@_role.command(name='toggle', help='Toggles as many Role permissions as you entered.')
+	@commands.has_permissions(manage_roles=True)
+	async def _roletoggle(self, ctx, role:discord.Role, permissions: commands.Greedy[discord.Permissions])
+		perms = {}
+		await role.edit(permissions=permissions)
+				
+	@_role.command(name='edit', help='Edit an existing Role.')
+	@commands.has_permissions(manage_roles=True)
+	async def _roleedit(self, ctx, role:discord.Role, name=None, colour:discord.Colour=None, hoist:bool=False, mentionable:bool=False, position:int=None, reason=None)
+		await role.edit(name=name, colour=colour, hoist=hoist, mentionable=mentionable, position=position, reason=reason)
+		if len(name) < 100:
+			await ctx.send(f'{role.mention} has been updated.')
+		else:
+			await ctx.send('Role has been updated.')
+						
+	@_role.command(name='delete', help='Delete an existing Role.')
+	@commands.has_permissions(manage_roles=True)
+	async def _roledel(self, ctx, role:discord.Role, reason=None)
+		await role.delete(reason=reason)
+		await ctx.send('Role has been deleted.')
 
+	#---------------------------------------------------------------------------------
+						
 def setup(bot):
     bot.add_cog(Admin(bot))
     bot.add_cog(Setup(bot))
