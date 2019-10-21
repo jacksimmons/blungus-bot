@@ -1,4 +1,4 @@
-import csv
+[]import csv
 import os
 import discord
 
@@ -34,7 +34,7 @@ class Base:
                     output += '...'
 
             elif len(output) >= max_total_length:
-                output += f' ... {end_data}'
+                output += f' ... {end_data[:max_individual_length]}'
                 break
 
         return output
