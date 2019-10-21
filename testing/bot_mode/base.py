@@ -10,12 +10,15 @@ class Base:
 
     #Method used to convert a large list into a neat string with the given constraints, converting
     #each member of the list from data to data.name for the purpose of the discord bot.
-    async def convert_long_list(list, max_individual_length, max_total_length, end_data):
+    async def convert_long_list(list, max_individual_length, max_total_length, end_data=None):
 
     #'end_data' is the piece of data which is skipped to when the string becomes greater than
     #or equal to max_total_length and the rest of the list is ignored.
     #Example: list[:max_total_length] + '...' + end_data
     #If this limit is not reached, 'end_data' is not used.
+    
+        if end_data is None: #If the end_data is undefined, set it to the final item in the list
+            end_data = list[len(list)-1]
 
         output = ''
 
