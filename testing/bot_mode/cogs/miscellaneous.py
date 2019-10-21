@@ -241,6 +241,27 @@ class Misc(commands.Cog):
             else:
                 await ctx.send(f'{ctx.author.mention}, `{ctx.command}` has a 30 character limit for `x`.')
 
+
+    @commands.command(
+        name='getmessage',
+        help='Displays message links for every message ID provided.',
+        description='''Displays message links for every message ID provided.
+        Warning: If an invalid ID is provided, then the link will not work.''',
+        aliases=['getmsg']
+    )
+
+    async def get_msg(self, ctx, messages: commands.Greedy[int]):
+        output = ''
+        for msg in messages:
+            if output == '':
+                output = f'`Message {messages.index(msg)}`: https://discordapp.com/channels/{ctx.guild.id}/{ctx.channel.id}/{msg}'
+            else:
+                output += f'\n`Message {messages.index(msg)}`: https://discordapp.com/channels/{ctx.guild.id}/{ctx.channel.id}/{msg}'
+        if output == '':
+            await ctx.send("You didn't provide any IDs!") #Just in case
+        else:
+            await ctx.send(output)
+
     #---------------------------------------------------------------------------------
 
     @commands.command(
