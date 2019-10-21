@@ -368,7 +368,7 @@ class Setup(commands.Cog):
 
     @_textchannel.command(name='create', help='Create a Text Channel.')
     @commands.has_permissions(manage_channels=True)
-    async def _textcreate(self, ctx, name='text-channel', topic=None, category:discord.CategoryChannel=None, position:int=None, slowmode_delay:int=None, nsfw:bool=None, reason=None):
+    async def _textcreate(self, ctx, name='text-channel', topic=None, category:discord.CategoryChannel=None, slowmode_delay:int=None, position:int=None, nsfw:bool=None, reason=None):
         #Check if the Text Channel requested is valid and can be created;
         # - Is there a name more than 1 and less than 100 characters long?
         # - Is the length of the topic less than 1024 characters long?
@@ -384,7 +384,7 @@ class Setup(commands.Cog):
                     await ctx.send("Please choose a delay between 0 and 21600 seconds.")
 
             c = await ctx.guild.create_text_channel(name=name, position=position, slowmode_delay=slowmode_delay, nsfw=nsfw, topic=topic, category=category, reason=reason)
-            await ctx.send(f"{c.mention} has been created!")
+            await ctx.send(f"Text Channel {c.mention} has been created!")
         else:
             await ctx.send("Please choose a name between 1 and 100 characters in length.")
 	
@@ -392,11 +392,11 @@ class Setup(commands.Cog):
 	@commands.has_permissions(manage_channels=True)
 	async def _textclone(self, ctx, channel_to_clone:discord.TextChannel, name=None, reason=None):
 		cloned_channel = await channel_to_clone.clone(name=name, reason=reason)
-		await ctx.send(f'{channel_to_clone.mention} has been cloned to create {cloned_channel.mention}!')
+		await ctx.send(f'Text Channel {channel_to_clone.mention} has been cloned to create {cloned_channel.mention}!')
 	
 	@_textchannel.command(name='info', help='Display some information about an existing Text Channel.')
 	@commands.has_permissions(manage_channels=True)
-	async def _textinfo(self, ctx, channel:discord.TextChannel):
+	async def _textinfo(self, ctx, target:discord.TextChannel):
 											
 		embed = discord.Embed() #Create an embed
 		embed.set_author(name=f'{target.mention}', avatar_url=ctx.guild.icon_url)
@@ -466,26 +466,26 @@ class Setup(commands.Cog):
 											
 	@_textchannel.command(name='edit', help='Edit an existing Text Channel.')
 	@commands.has_permissions(manage_channels=True)
-	async def _textedit(self, ctx, channel:discord.TextChannel, name, topic=None, category:discord.Category=None, slowmode_delay:int=None, position:int=None, nsfw:bool=None, sync_perms:bool=None, reason=None):
+	async def _textedit(self, ctx, channel:discord.TextChannel, name, topic=None, category:discord.CategoryChannel=None, slowmode_delay:int=None, position:int=None, nsfw:bool=None, sync_perms:bool=None, reason=None):
 		await channel.edit(name=name, topic=topic, position=position, nsfw=nsfw, sync_permissions=sync_perms, category=category, slowmode_delay=slowmode_delay, reason=None)
-		await ctx.send(f'{channel.mention} has been updated.')
+		await ctx.send(f'Text Channel {channel.mention} has been updated.')
 						
 	@_textchannel.command(name='delete', help='Deletes an existing Text Channel.')
 	@commands.has_permissions(manage_channels=True)
 	async def _textdel(self, ctx, channel:discord.TextChannel, reason=None):
 		await channel.delete(reason=reason)
-		await ctx.send(f'{channel.mention} has been deleted.')
+		await ctx.send(f'Text Channel {channel.mention} has been deleted.')
 						
     #---------------------------------------------------------------------------------
 
-    @commands.group(name='voicechannel', help='Create, edit or delete a VoiceChannel.', aliases=['vc'])
+    @commands.group(name='voicechannel', help='Interact with or create new Voice Channels.', aliases=['vc'])
     async def _voicechannel(self, ctx):
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
 
     @_voicechannel.command(name='create', help='Create a VoiceChannel.')
     @commands.has_permissions(manage_messages=True)
-    async def _voicecreate(self, ctx, name="Voice Channel", category:discord.CategoryChannel=None, user_limit:int=None, position:int=None, bitrate:int=None):
+    async def _voicecreate(self, ctx, name="Voice Channel", category:discord.CategoryChannel=None, user_limit:int=None, bitrate:int=None, position:int=None):
         #Check if the Voice Channel requested is valid and can be created;
         # - Is there a name more than 1 and less than 100 characters long?
         # - Is the user limit valid? (TBA)
@@ -493,13 +493,69 @@ class Setup(commands.Cog):
 
         if 1 < len(name) < 100:
             c = await ctx.guild.create_voice_channel(name=name, category=category, position=position, user_limit=user_limit, bitrate=bitrate, reason=reason)
-            await ctx.send(f"The voice channel {c.mention} has been created!")
+            await ctx.send(f"The voice channel {c.name} has been created!")
         else:
             await ctx.send("Please choose a name between 1 and 100 characters in length.")
+	
+	@_voicechannel.command(name'clone', help='Clones a Voice Channel.')
+	@commands.has_permissions(manage_channels=True)
+	async def _voiceclone(self, ctx, channel_to_clone:discord.VoiceChannel, name=None, reason=None):
+		cloned_channel = await channel_to_clone.clone(name=name, reason=reason)
+		await ctx.send(f'Voice Channel {channel_to_clone.name} has been cloned to create {cloned_channel.name}!')
+						
+	@_voicechannel.command(name='info', help='Display some information about an existing Voice Channel.')
+	@commands.has_permissions(manage_channels=True)
+	async def _voiceinfo(self, ctx, target:discord.VoiceChannel):
+											
+		embed = discord.Embed() #Create an embed
+		embed.set_author(name=f'{target.mention}', avatar_url=ctx.guild.icon_url)
+		embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+		
+		embed.add_field(name='ID', value=target.id)
+		embed.add_field(name='Category', value=target.category)
+		embed.add_field(name='Category ID', value=target.category_id)
+		
+		embed.add_field(name='Bitrate', value=target.bitrate)
+		embed.add_field(name='User Limit', value=target.user_limit)
+		embed.add_field(name='Created at', value=f'{target.created_at.day[dotw]} {target.created_at.day} {target.created_at.month[moty]} {target.created_at.year}'
+		
+		embed.add_field(name='Position', value=target.position)
+		embed.add_field(name='Permissions synced', value=target.permissions_synced)
+											
+		changed_roles = await Base.convert_long_list(target.changed_roles, 50, 900)
+		#Make the max total length slightly below the maximum embed value length which is 1024.
+		
+		embed.add_field(name='Changed roles', value=changed_roles, inline=False)
+		
+		await ctx.send(embed=embed)
+	
+	@_voicechannel.command(name='invites', help='Displays all invites currently leading to this Voice Channel.')
+	@commands.has_permissions(manage_guild=True)
+	async def _voiceinvites(self, ctx, channel:discord.VoiceChannel)
+						
+		invites = await Base.convert_long_list(channel.invites(), 100, 1000)
+		
+		embed = discord.Embed()
+		embed.set_author(name=channel.mention, avatar_url=ctx.guild.icon_url)
+		embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+		
+		embed.add_field(name='Invites', value=invites')
+	
+	@_voicechannel.command(name='edit', help='Edit an existing Voice Channel.')
+	@commands.has_permissions(manage_channels=True)
+	async def _voiceedit(self, ctx, channel:discord.VoiceChannel, name, user_limit:int=None, bitrate:int=None, category:discord.CategoryChannel=None, position:int=None, sync_perms:bool=None, reason=None):
+		await channel.edit(name=name, bitrate=bitrate, user_limit=user_limit, position=position, sync_permissions=sync_perms, category=category, reason=None)
+		await ctx.send(f'Voice Channel {channel.name} has been updated.')
+	
+	@_voicechannel.command(name='delete', help='Deletes an existing Voice Channel.')
+	@commands.has_permissions(manage_channels=True)
+	async def _voicedel(self, ctx, channel:discord.VoiceChannel, reason=None):
+		await channel.delete(reason=reason)
+		await ctx.send(f'Voice Channel {channel.name} has been deleted.')
 
     #---------------------------------------------------------------------------------
 
-    @commands.group(name='categorychannel', help='Create, edit or delete a CategoryChannel.', aliases=['category','cc'])
+    @commands.group(name='categorychannel', help='Interact with or create new Categories.', aliases=['category','cc'])
     async def _categorychannel(self, ctx):
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
@@ -511,16 +567,92 @@ class Setup(commands.Cog):
         # - Is the name in between 1 and 100 characters long?
         if 1 < len(name) < 100:
             c = await ctx.guild.create_category(name=name, reason=reason)
-            await ctx.send(f"The category {c.mention} has been created!")
+            await ctx.send(f"The category {c.name} has been created!")
         else:
             await ctx.send("Please choose a name between 1 and 100 characters in length.")
+	
+	@_categorychannel.command(name'clone', help='Clones a Category.')
+	@commands.has_permissions(manage_channels=True)
+	async def _categoryclone(self, ctx, category_to_clone:discord.CategoryChannel, name=None, reason=None):
+		cloned_channel = await channel_to_clone.clone(name=name, reason=reason)
+		await ctx.send(f'Category {category_to_clone.name} has been cloned to create {cloned_channel.name}!')
 
+	@_categorychannel.command(name='info', help='Display some information about an existing Category.')
+	@commands.has_permissions(manage_channels=True)
+	async def _categoryinfo(self, ctx, target:discord.CategoryChannel):
+											
+		embed = discord.Embed() #Create an embed
+		embed.set_author(name=f'{target.name}', avatar_url=ctx.guild.icon_url)
+		embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+		
+		embed.add_field(name='ID', value=target.id)
+		embed.add_field(name='NSFW Category', value=target.is_nsfw())
+		embed.add_field(name='Created at', value=f'{target.created_at.day[dotw]} {target.created_at.day} {target.created_at.month[moty]} {target.created_at.year}'
+		
+		embed.add_field(name='Position', value=target.position)
+											
+		changed_roles = await Base.convert_long_list(target.changed_roles, 50, 900)
+		#Make the max total length slightly below the maximum embed value length which is 1024.
+		
+		embed.add_field(name='Changed roles', value=changed_roles, inline=False)
+		
+		await ctx.send(embed=embed)
+	
+	@_categorychannel.command(name='edit', help='Edit an existing Category.')
+	@commands.has_permissions(manage_channels=True)
+	async def _categoryedit(self, ctx, category:discord.CategoryChannel, name, position:int=None, nsfw:bool=None, reason=None):
+		await category.edit(name=name, position=position, nsfw=nsfw, reason=reason)
+		await ctx.send(f'Category {category.name} has been updated.')
+	
+	@_categorychannel.command(name='delete', help='Deletes an existing Category.')
+	@commands.has_permissions(manage_channels=True)
+	async def _categorydel(self, ctx, category:discord.CategoryChannel, reason=None):
+		await category.delete(reason=reason)
+		await ctx.send(f'Category {category.name} has been deleted.')
+	
+	#-----------------------------------------
+						
+	@_categorychannel.group(name='createchannel', help='Creates a Text or Voice Channel in a Category.', aliases=['createnew','add'])
+	async def _categoryadd(self, ctx):
+        if ctx.invoked_subcommand is None:
+            raise commands.BadArgument("Invalid subcommand passed.")
+	
+	@_categoryadd.command(name='textchannel', help='Creates a Text Channel in a Category.', aliases=['text','tc'])
+	async def _categoryaddtext(self, ctx, category:discord.CategoryChannel, name='text-channel', topic=None, slowmode_delay=None, position:int=None, nsfw:bool=None, reason=None):
+		#Check if the Text Channel requested is valid and can be created;
+        # - Is there a name more than 1 and less than 100 characters long?
+        # - Is the length of the topic less than 1024 characters long?
+		# - Is the slowmode delay valid and less than 6 hours?
+
+        if 1 < len(name) < 100: #This is the maximum limit for Text Channel names.
+            if topic is not None:
+                if len(topic) > 1024: #This is the maximum limit for Text Channel topics.
+                    await ctx.send("Please choose a channel topic that is 1024 or less characters in length.")
+
+            if slowmode_delay is not None:
+                if slowmode_delay < 0 or slowmode_delay > 21600: #This is the range that 'slowmode_delay' must be in.
+                    await ctx.send("Please choose a delay between 0 and 21600 seconds.")
+
+            c = await category.create_text_channel(name=name, position=position, slowmode_delay=slowmode_delay, nsfw=nsfw, topic=topic, reason=reason)
+            await ctx.send(f"Text Channel {c.mention} has been created in Category `{category.name}`!")
+        else:
+            await ctx.send("Please choose a name between 1 and 100 characters in length.")
+		
+	@_categoryadd.command(name='voicechannel', help='Creates a Voice Channel in a Category.', aliases=['voice','vc'])
+	async def _categoryaddvoice(self, ctx, category:discord.CategoryChannel, name='Voice Channel', user_limit:int=None, bitrate:int=None, reason=None):
+		#Check if the Voice Channel requested is valid and can be created;
+        # - Is there a name more than 1 and less than 100 characters long?
+        # - Is the user limit valid? (TBA)
+        # - Is the bitrate valid? (TBA)
+
+        if 1 < len(name) < 100:
+            c = await ctx.guild.create_voice_channel(name=name, position=position, user_limit=user_limit, bitrate=bitrate, reason=reason)
+            await ctx.send(f"The voice channel {c.name} has been created in Category `{category.name}`!")
+        else:
+            await ctx.send("Please choose a name between 1 and 100 characters in length.")
+	
+	#-----------------------------------------
     #---------------------------------------------------------------------------------
-	
-	@_textinfo.before_invoke
-	@_textedit.before_invoke
-	
-
 
 def setup(bot):
     bot.add_cog(Admin(bot))
