@@ -106,7 +106,7 @@ class Admin(commands.Cog):
                 await ctx.send("`Invalid User or ID entered.`")
 
         if who not in [BanEntry.user for BanEntry in self.ban_entries]:
-            #(Source needed)
+            #https://wiki.python.org/moin/Generators
             #This checks whether the user/member is in the list of banned members. Since every BanEntry is a tuple within the
             #guild.bans list, we need to use a 'generator' to check whether the user is in [a list of users for every BanEntry
             #in the ban entries list].
@@ -125,7 +125,7 @@ class Admin(commands.Cog):
 
                 elif who.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
                     if who.id != ctx.guild.owner_id: #Nobody can ban the owner, so this shouldn't be an option.
-                        await ctx.guild.ban(user=who, reason=reason, delete_message_days=delete_message_days)
+                        await ctx.guild.ban(user=who, reason=reason, delete_message_days=delete_message_days
                         s = True
                     else:
                         await ctx.send(f'{ctx.author.mention}, you can\'t ban the owner!')
@@ -171,11 +171,11 @@ class Admin(commands.Cog):
 
         if delete_message_days < 0:
             delete_message_days = 0
-            await ctx.send("`delete message days` must be an integer between `0 and 7` inclusive, so it has been set to 0.")
+            await ctx.send("`Delete message days` must be an integer between `0 and 7` inclusive, so it has been set to 0.")
 
         elif delete_message_days > 7:
             delete_message_days = 7
-            await ctx.send("`delete message days` must be an integer between `0 and 7` inclusive, so it has been set to 7.")
+            await ctx.send("`Delete message days` must be an integer between `0 and 7` inclusive, so it has been set to 7.")
         for x in range(0,len(who)):
 
             if who[x] not in [BanEntry.user for BanEntry in self.ban_entries]: #Generator to check the user is not already banned
@@ -361,18 +361,18 @@ class Setup(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.group(name='textchannel', help='Create, edit or delete a TextChannel.', aliases=['tc'])
+    @commands.group(name='textchannel', help='Interact with or create Text Channels.', aliases=['tc'])
     async def _textchannel(self, ctx):
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
 
-    @_textchannel.command(name='create', help='Create a TextChannel.')
-    @commands.has_permissions(manage_messages=True)
+    @_textchannel.command(name='create', help='Create a Text Channel.')
+    @commands.has_permissions(manage_channels=True)
     async def _textcreate(self, ctx, name='text-channel', topic=None, category:discord.CategoryChannel=None, position:int=None, slowmode_delay:int=None, nsfw:bool=None, reason=None):
         #Check if the Text Channel requested is valid and can be created;
         # - Is there a name more than 1 and less than 100 characters long?
         # - Is the length of the topic less than 1024 characters long?
-        # - Is the slowmode delay valid and less than 6 hours?
+		# - Is the slowmode delay valid and less than 6 hours?
 
         if 1 < len(name) < 100:
             if topic is not None:
@@ -384,10 +384,98 @@ class Setup(commands.Cog):
                     await ctx.send("Please choose a delay between 0 and 21600 seconds.")
 
             c = await ctx.guild.create_text_channel(name=name, position=position, slowmode_delay=slowmode_delay, nsfw=nsfw, topic=topic, category=category, reason=reason)
-            await ctx.send(f"The text channel {c.mention} has been created!")
+            await ctx.send(f"{c.mention} has been created!")
         else:
             await ctx.send("Please choose a name between 1 and 100 characters in length.")
+	
+	@_textchannel.command(name='clone', help='Clones a Text Channel.')
+	@commands.has_permissions(manage_channels=True)
+	async def _textclone(self, ctx, channel_to_clone:discord.TextChannel, name=None, reason=None):
+		cloned_channel = await channel_to_clone.clone(name=name, reason=reason)
+		await ctx.send(f'{channel_to_clone.mention} has been cloned to create {cloned_channel.mention}!')
+	
+	@_textchannel.command(name='info', help='Display some information about an existing Text Channel.')
+	@commands.has_permissions(manage_channels=True)
+	async def _textinfo(self, ctx, channel:discord.TextChannel):
+											
+		embed = discord.Embed() #Create an embed
+		embed.set_author(name=f'{target.mention}', avatar_url=ctx.guild.icon_url)
+		embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+		
+		embed.add_field(name='ID', value=target.id)
+		embed.add_field(name='Category', value=target.category)
+		embed.add_field(name='Category ID', value=target.category_id)
+		
+		embed.add_field(name='Topic', value=target.topic)
+		embed.add_field(name='News Channel', value=target.is_news())
+		embed.add_field(name='NSFW Channel', value=target.is_nsfw())
+		
+		embed.add_field(name='Created at', value=f'{target.created_at.day[dotw]} {target.created_at.day} {target.created_at.month[moty]} {target.created_at.year}'
+		embed.add_field(name='Slowmode delay', value=target.slowmode_delay)
+		embed.add_field(name='Position', value=target.position)
 
+		embed.add_field(name='Permissions synced', value=target.permissions_synced)
+											
+		changed_roles = await Base.convert_long_list(target.changed_roles, 50, 900)
+		#Make the max total length slightly below the maximum embed value length which is 1024.
+		
+		embed.add_field(name='Changed roles', value=changed_roles, inline=False)
+		
+		last_message = target.last_message[:300]
+		if len(target.last_message) >= 300:
+			last_message += '[...]'
+		
+		embed.add_field(name='last_message', value=last_message, inline=False)
+		
+		await ctx.send(embed=embed)
+	
+	@_textchannel.command(name='invites', help='Displays all invites currently leading to this Text Channel.')
+	@commands.has_permissions(manage_guild=True)
+	async def _textinvites(self, ctx, channel:discord.TextChannel)
+						
+		invites = await Base.convert_long_list(channel.invites(), 100, 1000)
+		
+		embed = discord.Embed()
+		embed.set_author(name=channel.mention, avatar_url=ctx.guild.icon_url)
+		embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+		
+		embed.add_field(name='Invites', value=invites')
+	
+	@_textchannel.command(name='pins', help='Displays all pinned messages in this Text Channel.')
+	async def _textpins(self, ctx, channel:discord.TextChannel)
+						
+		pins = await Base.convert_long_list(channel.pins(), 100, 1000)
+		
+		embed = discord.Embed()
+		embed.set_author(name=channel.mention, avatar_url=ctx.guild.icon_url)
+		embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+		
+		embed.add_field(name='Pins', value=pins')
+	
+	@_textchannel.command(name='webhooks', help='Displays all webhooks associated with this Text Channel.')
+	@commands.has_permissions(manage_webhooks=True)
+	async def _textwebhooks(self, ctx, channel:discord.TextChannel)
+						
+		webhooks = await Base.convert_long_list(channel.webhooks(), 100, 1000)
+		
+		embed = discord.Embed()
+		embed.set_author(name=channel.mention, avatar_url=ctx.guild.icon_url)
+		embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+		
+		embed.add_field(name='Webhooks', value=webhooks')
+											
+	@_textchannel.command(name='edit', help='Edit an existing Text Channel.')
+	@commands.has_permissions(manage_channels=True)
+	async def _textedit(self, ctx, channel:discord.TextChannel, name, topic=None, category:discord.Category=None, slowmode_delay:int=None, position:int=None, nsfw:bool=None, sync_perms:bool=None, reason=None):
+		await channel.edit(name=name, topic=topic, position=position, nsfw=nsfw, sync_permissions=sync_perms, category=category, slowmode_delay=slowmode_delay, reason=None)
+		await ctx.send(f'{channel.mention} has been updated.')
+						
+	@_textchannel.command(name='delete', help='Deletes an existing Text Channel.')
+	@commands.has_permissions(manage_channels=True)
+	async def _textdel(self, ctx, channel:discord.TextChannel, reason=None):
+		await channel.delete(reason=reason)
+		await ctx.send(f'{channel.mention} has been deleted.')
+						
     #---------------------------------------------------------------------------------
 
     @commands.group(name='voicechannel', help='Create, edit or delete a VoiceChannel.', aliases=['vc'])
@@ -428,6 +516,10 @@ class Setup(commands.Cog):
             await ctx.send("Please choose a name between 1 and 100 characters in length.")
 
     #---------------------------------------------------------------------------------
+	
+	@_textinfo.before_invoke
+	@_textedit.before_invoke
+	
 
 
 def setup(bot):
