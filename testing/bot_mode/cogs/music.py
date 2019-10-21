@@ -83,22 +83,16 @@ class Music(commands.Cog):
                                 await self.source_channel.send("I was disconnected from voice, so the player has stopped.")
 
     @commands.command()
-    async def join(self, ctx, *, channel: discord.VoiceChannel = None):
-        """Joins a voice channel"""
+    async def join(self, ctx):
+        """Joins your voice channel"""
 
-        if channel is None:
+        if ctx.author.voice is not None:
             if ctx.voice_client is not None:
-                if ctx.author.voice.channel is not None:
-                    return await ctx.voice_client.move_to(ctx.author.voice.channel)
-                else:
-                    return commands.CommandError("You are not currently connected to a voice channel.")
+                return await ctx.voice_client.move_to(ctx.author.voice.channel)
             else:
                 await ctx.author.voice.channel.connect()
-
         else:
-            if ctx.voice_client is not None:
-                return await ctx.voice_client.move_to(channel)
-            await channel.connect()
+            raise commands.CommandError(f"{ctx.author.mention}, you are not currently connected to a voice channel.")
 
     @commands.command()
     async def play(self, ctx, *, url):
@@ -134,7 +128,7 @@ Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **'''
         if ctx.voice_client.is_playing() == True:
             ctx.voice_client.pause()
 
-            await ctx.send("The player is now **paused**. Use **resume** to unpause.")
+            await ctx.send(f"The player is now **paused**. Use **resume** to unpause.")
 
         else:
             raise commands.CommandError("The music is already paused.")
@@ -154,9 +148,9 @@ Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **'''
         """Changes the player's volume"""
 
         if ctx.voice_client is None:
-            raise commands.CommandError("No music currently playing.")
+            raise commands.CommandError("I am not connected to any voice channels.")
 
-        elif ctx.author.voice == ctx.voice_client.channel:
+        elif ctx.author.voice.channel == ctx.voice_client.channel:
             if 0 < volume < 200:
                 await ctx.send(f"Changed volume to {volume}%")
             elif volume >= 200:
@@ -169,7 +163,7 @@ Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **'''
             ctx.voice_client.source.volume = volume / 100
 
         else:
-            raise commands.CommandError("There was an error handling your request.")
+            raise commands.CommandError("No music currently playing.")
 
     @commands.command()
     async def bind(self, ctx):
@@ -194,14 +188,17 @@ Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **'''
     async def unbind(self, ctx):
         """Unbinds any bound member that may exist."""
 
-        self.bound_member = None
-        await ctx.send("I am no longer bound to anyone.")
+        if self.bound_member is not None:
+            self.bound_member = None
+            await ctx.send("I am no longer bound to anyone.")
+        else:
+            raise commands.CommandError(f"{ctx.author.mention}, I am not currently bound to anyone.")
 
     @commands.command()
     async def leave(self, ctx):
         """Stops and disconnects the bot from voice"""
 
-        if self.bound_member != None:
+        if self.bound_member is not None:
             await ctx.send(f"I am no longer bound to {ctx.author.name}.")
             self.bound_member = None
 
@@ -231,13 +228,19 @@ Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **'''
     )
 
     async def _pull(self, ctx, member: discord.Member):
-        if ctx.author.permissions_in(ctx.author.voice.channel).move_members == True:
-            if member.voice is not None:
-                await member.move_to(ctx.author.voice.channel)
+        if ctx.author.voice is not None:
+            if ctx.author.permissions_in(ctx.author.voice.channel).move_members == True:
+                if ctx.guild.me.permissions_in(ctx.author.voice.channel).move_members == True:
+                    if member.voice is not None:
+                        await member.move_to(ctx.author.voice.channel)
+                    else:
+                        raise commands.CommandError(ctx.author.name + ": This member is not currently connected to any voice channel.")
+                else:
+                    raise commands.CommandError(ctx.author.name + ": I do not have the `move members` permission required to pull users.")
             else:
-                raise commands.CommandError("This member is not currently connected to any voice channel.")
+                raise commands.CommandError(ctx.author.name + ": You do not have the `move members` permission required for this command.")
         else:
-            raise commands.CommandError("You do not have the `move members` permission required for this command.")
+            raise commands.CommandError(ctx.author.name + ": You are not connected to a voice channel.")
 
     @localplay.before_invoke
     @play.before_invoke

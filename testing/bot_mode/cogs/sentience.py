@@ -93,7 +93,7 @@ class CleverChungus(commands.Cog):
                 if message.content in inputs:
                     index = inputs.index(message.content)
                     output = outputs[index][random.randint(0,len(outputs[index])-1)]
-                    
+
                 skip_value = 2 #Increment the skip_value to progress the conversation
                 output = msg.content
                 send_output = True
