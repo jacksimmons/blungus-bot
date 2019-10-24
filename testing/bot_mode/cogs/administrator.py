@@ -469,80 +469,15 @@ class Admin(commands.Cog):
 
 class Setup(commands.Cog):
 
-#These commands use most aspects of the discord.py documentation to create Guild channels,
-#roles, invites, etc. It is ordered according to the 'Discord Models' part of the docs:
-#Message, Reaction, Guild, Member, Emoji, Role, [Text, Voice, Category] Channels, Invite, Widget
-	
+    #A class which allows Members to create, modify or delete new Guild-related objects.
+    #It is ordered by the order of the object in question in relation to the 'Discord
+    #Models' section of the official documentation from top to bottom:
+
+    #Message > Reaction > Guild > Member > Emoji > Role > [Text > Voice > Category]Channel > Invite > Widget
+    
+    
     def __init__(self, bot):
         self.bot = bot
-
-    #---------------------------------------------------------------------------------
-
-    @commands.group(name='invite', help='Interact with or create new instant invites.')
-    async def _invite(self, ctx):
-        if ctx.invoked_subcommand is None:
-            raise commands.BadArgument("Invalid subcommand passed.")
-
-    @_invite.command(name='create', help='Create an instant invite.')
-    @commands.has_permissions(create_instant_invite=True)
-    async def _invitecreate(self, ctx, channel, max_age:int=0, max_uses:int=0, temporary_membership:bool=False, unique_invite:bool=True, *, reason=None):
-        try:
-            t_converter = commands.TextChannelConverter()
-            final = await t_converter.convert(ctx, channel)
-            type = 't'
-        except:
-            try:
-                v_converter = commands.VoiceChannelConverter()
-                final = await v_converter.convert(ctx, channel)
-                type = 'v'
-            except:
-                raise commands.CommandError("Invalid Channel entered.")
-
-        invite = await final.create_invite(max_age=max_age, max_uses=max_uses, temporary=temporary_membership, unique=unique_invite, reason=reason)
-        if type == 't':
-            await ctx.send(f"Your invite to {final.mention} has been generated: {str(invite)}")
-        else:dis
-            await ctx.send(f"Your invite to the Voice Channel {final.name} has been generated: {str(invite)}")
-
-    @_invite.command(name='info', help='Displays information about an Invite.')
-    async def _inviteinfo(self, ctx, invite):
-        invite = await self.bot.fetch_invite(invite)
-
-        embed = discord.Embed() #Create an embed
-        embed.set_author(name='Invite Info')
-        embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
-
-        embed.add_field(name='Code (ID)', value=invite.id)
-        embed.add_field(name='Channel', value=invite.channel.mention)
-        embed.add_field(name='Inviter', value=invite.inviter.mention)
-
-        #embed.add_field(name='Created at', value=f'{dotw[invite.created_at.weekday()-1]}, {invite.created_at.day} {moty[invite.created_at.month-1]} {invite.created_at.year}')
-
-        embed.add_field(name='Uses', value=str(invite.uses))
-        embed.add_field(name='Maximum Uses', value=str(invite.max_uses))
-        embed.add_field(name='Temporary', value=invite.temporary)
-
-        embed.add_field(name='Revoked', value=invite.revoked)
-
-        if invite.max_age == 0:
-            max_age = 'Never expires'
-        else:
-            max_age = str(invite.max_age)
-
-        embed.add_field(name='Maximum Age', value=max_age)
-
-        embed.add_field(name='URL', value=invite.url, inline=False)
-        embed.add_field(name='Approximate Member Count', value=invite.approximate_member_count, inline=False)
-        embed.add_field(name='Approximate Online Count', value=invite.approximate_presence_count, inline=False)
-
-        await ctx.send(embed=embed)
-
-    @_invite.command(name='delete', help='Deletes an Invite.')
-    @commands.has_permissions(manage_channels=True)
-    async def _invitedel(self, ctx, invite, *, reason=None):
-        invite = await self.bot.fetch_invite(invite)
-        await invite.delete(reason=reason)
-        await ctx.send("Invite deleted.")
 
     #---------------------------------------------------------------------------------
 
@@ -585,6 +520,92 @@ class Setup(commands.Cog):
         await ctx.send(f'Welcome channel has been set to {target.mention}!')
 
     #---------------------------------------------------------------------------------
+    #Command group for creating, getting information about, editing and deleting 'Roles'
+    #---Roles are named tags which can be added to Members to give them specific permissions,
+    #---allow them to see private channels, change the colour of their Usernames, etc.
+
+    @commands.group(name='role', help='Interact with or create new roles.')
+    async def _role(self, ctx):
+        if ctx.invoked_subcommand is None:
+            raise commands.BadArgument("Invalid subcommand passed.")
+
+    @_role.command(name='create', help='Create a new Role.')
+    @commands.has_permissions(manage_roles=True)
+    async def _rolecreate(self, ctx, name=None, colour:discord.Colour=None, hoist:bool=False, mentionable:bool=False, *, reason=None):
+        await ctx.guild.create_role(name=name, colour=colour, hoist=hoist, mentionable=mentionable, reason=reason)
+        if len(name) < 100:
+            await ctx.send(f'{role.mention} has been created!')
+        else:
+            await ctx.send('Role has been created!')
+
+    @_role.command(name='info', help='Display some information about an existing Role.')
+    @commands.has_permissions(manage_roles=True)
+    async def _roleinfo(self, ctx, *, role:discord.Role):
+
+        perms = None
+
+        embed = discord.Embed(colour=role.colour) #Create an embed
+        embed.set_author(name=f'Role Info', icon_url=ctx.guild.icon_url)
+        embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+
+        if len(role.name) <= 1024:
+            name = role.name
+        else:
+            name = role.name[:1020] + ' ...'
+
+        perm_dict = iter(role.permissions)
+
+        while True:
+            try:
+                perm = next(perm_dict)
+                if perm[1] == True:
+                    if perms is not None:
+                        perms += f', {perm[0]}'
+                    else:
+                        perms = perm[0]
+
+            except StopIteration:
+                break
+
+        formatted_perms = perms.title().replace("_", " ")
+
+        embed.add_field(name='Name', value=name, inline=False)
+
+        embed.add_field(name='ID', value=role.id)
+        embed.add_field(name='Hoisted', value=role.hoist)
+        embed.add_field(name='Mentionable', value=role.mentionable)
+
+        embed.add_field(name='Created at', value=f'{dotw[role.created_at.weekday()-1]}, {role.created_at.day} {moty[role.created_at.month-1]} {role.created_at.year}')
+        embed.add_field(name='Position', value=role.position)
+        embed.add_field(name='Managed', value=role.managed)
+
+        embed.add_field(name='Colour [Hex]', value=str(role.colour))
+        embed.add_field(name='Colour [Raw]', value=hash(role.colour))
+        embed.add_field(name='Colour [RGB]', value=role.colour.to_rgb())
+
+        embed.add_field(name='Permissions', value=formatted_perms)
+
+        await ctx.send(embed=embed)
+
+    @_role.command(name='edit', help='Edit an existing Role.')
+    @commands.has_permissions(manage_roles=True)
+    async def _roleedit(self, ctx, role:discord.Role, name=None, colour:discord.Colour=None, hoist:bool=False, mentionable:bool=False, position:int=None, *, reason=None):
+        await role.edit(name=name, colour=colour, hoist=hoist, mentionable=mentionable, position=position, reason=reason)
+        if len(name) < 100:
+            await ctx.send(f'{role.mention} has been updated.')
+        else:
+            await ctx.send('Role has been updated.')
+
+    @_role.command(name='delete', help='Delete an existing Role.')
+    @commands.has_permissions(manage_roles=True)
+    async def _roledel(self, ctx, role:discord.Role, reason=None):
+        await role.delete(reason=reason)
+        await ctx.send('Role has been deleted.')
+
+    #---------------------------------------------------------------------------------
+    #---A command group to allow Members to create, clone, view information about, see
+    #---invites for, see pinned messages for, see webhooks for, edit and delete
+    #---TextChannels.
 
     @commands.group(name='textchannel', help='Interact with or create Text Channels.', aliases=['tc'])
     async def _textchannel(self, ctx):
@@ -712,6 +733,8 @@ class Setup(commands.Cog):
         await ctx.send(f'Text Channel {channel.mention} has been deleted.')
 
     #---------------------------------------------------------------------------------
+    #---A command group to allow Members to create, clone, view information about,
+    #---see invites for, edit and delete VoiceChannels.
 
     @commands.group(name='voicechannel', help='Interact with or create new Voice Channels.', aliases=['vc'])
     async def _voicechannel(self, ctx):
@@ -789,6 +812,8 @@ class Setup(commands.Cog):
         await ctx.send(f'Voice Channel {channel.name} has been deleted.')
 
     #---------------------------------------------------------------------------------
+    #---A command group to allow Members to create, clone, view information about, edit
+    #---and delete CategoryChannels.
 
     @commands.group(name='categorychannel', help='Interact with or create new Categories.', aliases=['category','cc'])
     async def _categorychannel(self, ctx):
@@ -846,6 +871,9 @@ class Setup(commands.Cog):
         await ctx.send(f'Category {category.name} has been deleted.')
 
     #-----------------------------------------
+    #--A command group within a command group to
+    #--let users decide what type of channel
+    #--to add to the category.
 
     @_categorychannel.group(name='createchannel', help='Creates a Text or Voice Channel in a Category.', aliases=['createnew','add'])
     async def _categoryadd(self, ctx):
@@ -888,87 +916,126 @@ class Setup(commands.Cog):
 
     #-----------------------------------------
     #---------------------------------------------------------------------------------
-
-    @commands.group(name='role', help='Interact with or create new roles.')
-    async def _role(self, ctx):
+    #---A command group to create, get information about and delete Invites.
+    #---'Invite' refers to a 'discord.gg/x' link where x is a hash that refers
+    #---to a specific guild and channel that can be defined.
+            
+    @commands.group(name='invite', help='Interact with or create new instant invites.')
+    async def _invite(self, ctx):
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
 
-    @_role.command(name='create', help='Create a new Role.')
-    @commands.has_permissions(manage_roles=True)
-    async def _rolecreate(self, ctx, name=None, colour:discord.Colour=None, hoist:bool=False, mentionable:bool=False, *, reason=None):
-        await ctx.guild.create_role(name=name, colour=colour, hoist=hoist, mentionable=mentionable, reason=reason)
-        if len(name) < 100:
-            await ctx.send(f'{role.mention} has been created!')
+    @_invite.command(name='create', help='Create an instant invite.')
+    @commands.has_permissions(create_instant_invite=True)
+    async def _invitecreate(self, ctx, channel, max_age:int=0, max_uses:int=0, temporary_membership:bool=False, unique_invite:bool=True, *, reason=None):
+        try:
+            t_converter = commands.TextChannelConverter()
+            final = await t_converter.convert(ctx, channel)
+            type = 't'
+        except:
+            try:
+                v_converter = commands.VoiceChannelConverter()
+                final = await v_converter.convert(ctx, channel)
+                type = 'v'
+            except:
+                raise commands.CommandError("Invalid Channel entered.")
+
+        invite = await final.create_invite(max_age=max_age, max_uses=max_uses, temporary=temporary_membership, unique=unique_invite, reason=reason)
+        if type == 't':
+            await ctx.send(f"Your invite to {final.mention} has been generated: {str(invite)}")
         else:
-            await ctx.send('Role has been created!')
+            await ctx.send(f"Your invite to the Voice Channel {final.name} has been generated: {str(invite)}")
 
-    @_role.command(name='info', help='Display some information about an existing Role.')
-    @commands.has_permissions(manage_roles=True)
-    async def _roleinfo(self, ctx, *, role:discord.Role):
+    @_invite.command(name='info', help='Displays information about an Invite.')
+    async def _inviteinfo(self, ctx, invite):
+        invite = await self.bot.fetch_invite(invite)
 
-        perms = None
-
-        embed = discord.Embed(colour=role.colour) #Create an embed
-        embed.set_author(name=f'Role Info', icon_url=ctx.guild.icon_url)
+        embed = discord.Embed() #Create an Embed
+        embed.set_author(name='Invite Info')
         embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
 
-        if len(role.name) <= 1024:
-            name = role.name
+        embed.add_field(name='Code (ID)', value=invite.id)
+        embed.add_field(name='Channel', value=invite.channel.mention)
+        embed.add_field(name='Inviter', value=invite.inviter.mention)
+
+        #embed.add_field(name='Created at', value=f'{dotw[invite.created_at.weekday()-1]}, {invite.created_at.day} {moty[invite.created_at.month-1]} {invite.created_at.year}')
+
+        embed.add_field(name='Uses', value=str(invite.uses))
+        embed.add_field(name='Maximum Uses', value=str(invite.max_uses))
+        embed.add_field(name='Temporary', value=invite.temporary)
+
+        embed.add_field(name='Revoked', value=invite.revoked)
+
+        if invite.max_age == 0:
+            max_age = 'Never expires'
         else:
-            name = role.name[:1020] + ' ...'
+            max_age = str(invite.max_age)
 
-        perm_dict = iter(role.permissions)
+        embed.add_field(name='Maximum Age', value=max_age)
 
-        while True:
-            try:
-                perm = next(perm_dict)
-                if perm[1] == True:
-                    if perms is not None:
-                        perms += f', {perm[0]}'
-                    else:
-                        perms = perm[0]
-
-            except StopIteration:
-                break
-
-        formatted_perms = perms.title().replace("_", " ")
-
-        embed.add_field(name='Name', value=name, inline=False)
-
-        embed.add_field(name='ID', value=role.id)
-        embed.add_field(name='Hoisted', value=role.hoist)
-        embed.add_field(name='Mentionable', value=role.mentionable)
-
-        embed.add_field(name='Created at', value=f'{dotw[role.created_at.weekday()-1]}, {role.created_at.day} {moty[role.created_at.month-1]} {role.created_at.year}')
-        embed.add_field(name='Position', value=role.position)
-        embed.add_field(name='Managed', value=role.managed)
-
-        embed.add_field(name='Colour [Hex]', value=str(role.colour))
-        embed.add_field(name='Colour [Raw]', value=hash(role.colour))
-        embed.add_field(name='Colour [RGB]', value=role.colour.to_rgb())
-
-        embed.add_field(name='Permissions', value=formatted_perms)
+        embed.add_field(name='URL', value=invite.url, inline=False)
+        embed.add_field(name='Approximate Member Count', value=invite.approximate_member_count, inline=False)
+        embed.add_field(name='Approximate Online Count', value=invite.approximate_presence_count, inline=False)
 
         await ctx.send(embed=embed)
 
-    @_role.command(name='edit', help='Edit an existing Role.')
-    @commands.has_permissions(manage_roles=True)
-    async def _roleedit(self, ctx, role:discord.Role, name=None, colour:discord.Colour=None, hoist:bool=False, mentionable:bool=False, position:int=None, *, reason=None):
-        await role.edit(name=name, colour=colour, hoist=hoist, mentionable=mentionable, position=position, reason=reason)
-        if len(name) < 100:
-            await ctx.send(f'{role.mention} has been updated.')
-        else:
-            await ctx.send('Role has been updated.')
+    @_invite.command(name='delete', help='Deletes an Invite.')
+    @commands.has_permissions(manage_channels=True)
+    async def _invitedel(self, ctx, invite, *, reason=None):
+        invite = await self.bot.fetch_invite(invite)
+        await invite.delete(reason=reason)
+        await ctx.send("Invite deleted.")
 
-    @_role.command(name='delete', help='Delete an existing Role.')
-    @commands.has_permissions(manage_roles=True)
-    async def _roledel(self, ctx, role:discord.Role, reason=None):
-        await role.delete(reason=reason)
-        await ctx.send('Role has been deleted.')
+    #---------------------------------------------------------------------------------
+    #---A command group to create, get information about and delete Widgets.
+    #---'Widget' refers to a Guild widget.
 
-	#---------------------------------------------------------------------------------
+    @commands.group(name='widget', help='Interact with your Guild\'s Widget.')
+    async def _widget(self, ctx):
+        if ctx.invoked_subcommand is None:
+            raise commands.BadArgument("Invalid subcommand passed.")
 
+    @_widget.command(name='info', help='Gets information about the Guild from a Widget.')
+    async def _widgetinfo(self, ctx):
+        try:
+            widget = self.bot.fetch_widget(ctx.guild.id)
+
+            embed = discord.Embed() #Create an Embed
+            embed.set_author(name='Widget')
+            embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
+
+            channels = await Base.convert_long_list(widget.channels, 70, 1000)
+            #members = await Base.convert_long_list(widget.members, 40, 1000)
+
+            embed.add_field(name='Guild ID', value=str(widget.id))
+            embed.add_field(name='Guild Name', value=widget.name)
+            embed.add_field(name='Accessible Voice Channels', value=channels)
+
+            embed.add_field(name='Widget JSON URL', value=widget.json_url)
+            embed.add_field(name='Guild Invite URL', value=widget.invite_url)
+            embed.add_field(name='Created at', value=f'{dotw[widget.created_at.weekday()-1]}, {widget.created_at.day} {moty[widget.created_at.month-1]} {widget.created_at.year}')
+
+            await ctx.send(embed=embed)
+            
+        except discord.Forbidden:
+            raise commands.CommandError(f'{ctx.author.mention}: The widget for this guild is disabled.')
+
+    @_widget.command(name='members', help='Displays the online members in the server.')
+        try:
+            widget = self.bot.fetch_widget(ctx.guild.id)
+
+            embed = discord.Embed() #Create an Embed
+            embed.set_author(name='Widget: Online Members')
+
+            members = await Base.convert_long_list(widget.members, 40, 1000)
+            embed.add_field(name='Members', value=members)
+
+            await ctx.send(embed=embed)
+            
+        except discord.Forbidden:
+            raise commands.CommandError(f'{ctx.author.mention}: The widget for this guild is disabled.')
+        
+    
 def setup(bot):
     bot.add_cog(Admin(bot))
     bot.add_cog(Setup(bot))
