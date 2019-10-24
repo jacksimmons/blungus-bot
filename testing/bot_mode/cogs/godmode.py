@@ -1,12 +1,10 @@
 import discord
 from discord.ext import commands
-from datetime import datetime as d
 
 import json
 
 min_messages = 1
 max_messages = 10
-success = True
 
 class Godmode(commands.Cog):
 
@@ -17,7 +15,7 @@ class Godmode(commands.Cog):
 
     @commands.command(
         name='setstatus',
-        description='Changes the bot\'s discord presence [takes a while]',
+        description='Changes the bot\'s discord presence [may take a while]',
         aliases=[]
     )
 
