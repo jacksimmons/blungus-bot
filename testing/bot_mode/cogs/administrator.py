@@ -468,6 +468,11 @@ class Admin(commands.Cog):
     #@_ban.before_invoke()
 
 class Setup(commands.Cog):
+
+#These commands use most aspects of the discord.py documentation to create Guild channels,
+#roles, invites, etc. It is ordered according to the 'Discord Models' part of the docs:
+#Message, Reaction, Guild, Member, Emoji, Role, [Text, Voice, Category] Channels, Invite, Widget
+	
     def __init__(self, bot):
         self.bot = bot
 
@@ -496,7 +501,7 @@ class Setup(commands.Cog):
         invite = await final.create_invite(max_age=max_age, max_uses=max_uses, temporary=temporary_membership, unique=unique_invite, reason=reason)
         if type == 't':
             await ctx.send(f"Your invite to {final.mention} has been generated: {str(invite)}")
-        else:
+        else:dis
             await ctx.send(f"Your invite to the Voice Channel {final.name} has been generated: {str(invite)}")
 
     @_invite.command(name='info', help='Displays information about an Invite.')
