@@ -1,5 +1,6 @@
 import discord
 import math
+import json
 from decimal import *
 from discord.ext import commands
 from datetime import datetime as d
@@ -67,6 +68,38 @@ class Misc(commands.Cog):
     	# it will calculate how much time it takes to edit an message.
     	# It depends usually on your internet connection speed
         return
+
+    #---------------------------------------------------------------------------------
+
+    @commands.guild_only()
+    @commands.command(
+        name='tag',
+        help='Displays one of the guild\'s tags. See the tags command for more info.',
+    )
+
+    async def _tag(self, ctx, *, name):
+
+        import os
+        os.chdir('../bot_mode')
+
+        with open('data/guilds.json', 'r') as file:
+            #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
+            #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
+            #         [3] https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
+            data = json.load(file)
+            id = ctx.guild.id
+
+            file.seek(0) # Reset file position to the beginning
+
+            if str(id) not in data:
+                data[str(id)] = {}
+                raise commands.CommandError(ctx.author.name + ": No tags have been created yet. Use the `tags` command group to add one.")
+            else:
+                if 'tags' not in data[str(id)]:
+                    raise commands.CommandError(ctx.author.name + ": No tags have been created yet. Use the `tags` command group to add one.")
+                else:
+                    if name in data[str(id)]['tags']:
+                        await ctx.send(data[str(id)]['tags'][name])
 
     #---------------------------------------------------------------------------------
 
@@ -240,27 +273,6 @@ class Misc(commands.Cog):
                     pass
             else:
                 await ctx.send(f'{ctx.author.mention}, `{ctx.command}` has a 30 character limit for `x`.')
-
-
-    @commands.command(
-        name='getmessage',
-        help='Displays message links for every message ID provided.',
-        description='''Displays message links for every message ID provided.
-        Warning: If an invalid ID is provided, then the link will not work.''',
-        aliases=['getmsg']
-    )
-
-    async def get_msg(self, ctx, messages: commands.Greedy[int]):
-        output = ''
-        for msg in messages:
-            if output == '':
-                output = f'`Message {messages.index(msg)}`: https://discordapp.com/channels/{ctx.guild.id}/{ctx.channel.id}/{msg}'
-            else:
-                output += f'\n`Message {messages.index(msg)}`: https://discordapp.com/channels/{ctx.guild.id}/{ctx.channel.id}/{msg}'
-        if output == '':
-            await ctx.send("You didn't provide any IDs!") #Just in case
-        else:
-            await ctx.send(output)
 
     #---------------------------------------------------------------------------------
 

@@ -80,6 +80,9 @@ class CommandErrorHandler(commands.Cog):
             else:
                 return await ctx.send(f"❗ {ctx.author.mention}, `{ctx.command}` failed due to a bad argument: `{error.args[0]}`")
 
+        elif isinstance(error, discord.InvalidArgument):
+            return await ctx.send(f'❗ {ctx.author.mention}, your request failed due to an invalid argument: `{str(error)}`.')
+
         elif isinstance(error, commands.MissingPermissions):
             return await ctx.send(f"❗ {ctx.author.mention}, you need the following permissions to use this command: `{error.missing_perms}`")
 
