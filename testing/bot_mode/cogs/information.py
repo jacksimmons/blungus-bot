@@ -145,22 +145,26 @@ class Info(commands.Cog):
 #2
 		embed.add_field(name="Region", value=guild.region)
 #3
-		embed.add_field(name="ID", value=guild.id)
+		embed.add_field(name="Categories", value=str(len(guild.categories)))
 #4
 		embed.add_field(name="Members", value=str(len(guild.members)))
 #5
-		embed.add_field(name="Text Channels", value=str(len(guild.text_channels)))
+		embed.add_field(name="Channels", value=str(len(guild.channels)))
 #6
-		embed.add_field(name="Voice Channels", value=str(len(guild.voice_channels)))
+		embed.add_field(name="Text Channels", value=str(len(guild.text_channels)))
 #7
-		embed.add_field(name="File Upload Limit", value=f"{guild.filesize_limit/1000000}MB")
+		embed.add_field(name="Voice Channels", value=str(len((guild.voice_channels)))
 #8
-		embed.add_field(name="Emoji Limit", value=f"{guild.emoji_limit} Emoji")
+		embed.add_field(name="File Upload Limit", value=f"{guild.filesize_limit/1000000}MB")
 #9
-		embed.add_field(name="Bitrate Limit", value=f"{guild.bitrate_limit/1000} Kbps")
+		embed.add_field(name="Emoji Limit", value=str(guild.emoji_limit}) + " Emoji")
 #10
-		embed.add_field(name="Nitro Boosters", value=str(guild.premium_subscription_count))
+		embed.add_field(name="Bitrate Limit", value=f"{guild.bitrate_limit/1000} kbps")
 #11
+		embed.add_field(name="Roles", value=str(len(guild.roles)))
+#12
+		embed.add_field(name="Nitro Boosters", value=str(guild.premium_subscription_count))
+#13
 		embed.add_field(name="Guild Premium Tier", value=str(guild.premium_tier))
 #antepenultimate
 		embed.add_field(
@@ -230,7 +234,7 @@ class Info(commands.Cog):
 		embed.add_field(name="File Upload Limit", value=f"{g.filesize_limit/1000000}MB")
 		embed.add_field(name="Bitrate Limit", value=f"{g.bitrate_limit/1000} kbps")
 		embed.add_field(name=f"AFK Channel [AFK: {g.afk_timeout/60}m]", value=f"{g.afk_channel}")
-		embed.add_field(name="2FA Level", value=f"{g.mfa_level}")
+		embed.add_field(name="2FA Level", value=str(g.mfa_level)")
 		embed.add_field(name="Default Notifications", value=f"{str(g.default_notifications[0]).title()}")
 		embed.add_field(name="Verification Level", value=f"{str(g.verification_level).title()}")
 		embed.add_field(name="Explicit Content Filter", value=f"{str(g.explicit_content_filter).title()}")
@@ -243,7 +247,7 @@ class Info(commands.Cog):
 		inline=False)
 #preantepenultimate 22
 		embed.add_field(name="Premium Guild Features",
-		value=f"{features.title()}",
+		value=features.title(),
 		inline=False)
 #antepenultimate 23
 		embed.add_field(name="Server created",
@@ -251,13 +255,11 @@ class Info(commands.Cog):
 		inline=False)
 #penultimate 24
 		embed.add_field(name=f"Roles [{len(g.roles)}]",
-		value=f"{roles}",
-		inline=False)
+		value=roles, inline=False)
 #ultimate 25
 		embed.add_field(name=f"Categories [{len(g.categories)}]",
-		value=f"{categories}",
-		inline=False)
-
+		value=categories, inline=False)
+#send the embed
 		await ctx.send(embed=embed)
 
 def setup(bot):
