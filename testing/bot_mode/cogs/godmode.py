@@ -131,6 +131,28 @@ class Godmode(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
+    @commands.command(name='eval', description='Evaluate and run python code')
+    @commands.is_owner()
+    #https://stackoverflow.com/questions/44859165/async-exec-in-python
+    async def evaluate(self, ctx, *, code):
+        try:
+            # Make an async function with the code and `exec` it
+            exec(
+                f'async def __ex(self, ctx): ' +
+                ''.join(f'\n {l}' for l in code.split('\n'))
+            )
+
+            # Get `__ex` from local variables, call it and return the result
+            return await locals()['__ex'](self, ctx)
+        except Exception as e:
+            if len(str(e)) <= 2000:
+                await ctx.send(f"{type(e)}: {e}")
+            else:
+                await ctx.send(f"{type(e)}: Check the console.")
+
+
+    #---------------------------------------------------------------------------------
+
     @commands.command(
         name='guildlist',
         description='Returns the list of guilds I am a member of',

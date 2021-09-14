@@ -43,7 +43,9 @@ class Base:
         return output
 
     async def csv_input_prune(filename): #Removes repeated inputs
-        #os.chdir('../bot_mode') --- Unnecessary as we are already in this directory.
+
+        os.chdir('../bot_mode')
+
         with open(filename, 'r') as csvdata:
             reader = csv.reader(csvdata)
 
@@ -84,6 +86,9 @@ class Base:
                 writer.writerow(row)
 
     async def csv_output_prune(filename): #Removes repeated outputs
+
+        os.chdir('../bot_mode')
+
         with open(filename, 'r') as csvdata:
             reader = csv.reader(csvdata)
 
@@ -119,6 +124,7 @@ class Base:
 
     async def check_for_blanks(filename):
         with open(filename, 'r') as csvdata:
+            #---Check for blank entries in the file
             reader = csv.reader(csvdata)
 
             rows = []
@@ -127,20 +133,18 @@ class Base:
             for row in reader:
                 row_items.clear()
 
-                #for x in range(0,len(row)): #Check every item in the row for duplicates (even the input as this may cause infinite loops)
-                #    if row[x] == '':
-            #            rows.pop(row)
-            #        rows.append(row)
-                    #print('row items')
-                    #print(row_items)
+                #---Check for rows without a single response
+                #This is done by settung a variable equal to it. This will raise IndexError if row[1] doesn't exist,
+                #showing that the row has no responses and thus should be deleted.
 
-            #    row.clear()
-            #    for x in range(0, len(row_items)):
-            #        row.append(row_items[x])
-                #print('row')
-                #print(row)
+                try:
+                    temp = row[1]
+                    del temp
+                    there_are_responses = True
+                except IndexError:
+                    there_are_responses = False
 
-                if row != [] and '' not in row:
+                if row != [] and '' not in row and there_are_responses:
                     rows.append(row)
                     #print('rows')
                     #print(rows)

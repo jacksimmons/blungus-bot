@@ -202,8 +202,9 @@ Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **'''
             await ctx.send(f"I am no longer bound to {ctx.author.name}.")
             self.bound_member = None
 
-        if ctx.voice_client.is_playing():
-            await ctx.send("The player has stopped.")
+        if ctx.voice_client is not None:
+            if ctx.voice_client.is_playing():
+                await ctx.send("The player has stopped.")
 
         await ctx.voice_client.disconnect()
 

@@ -78,12 +78,17 @@ async def on_member_remove(member):
 
 @bot.event
 async def on_message(message):
-    if message.guild.me.permissions_in(message.channel).send_messages == True:
-        #This code checks whether the bot has the permission 'send messages' in the current channel
-        #If the bot can see this message, then it must have the 'read messages' command.
+    if isinstance(message.channel, discord.TextChannel):
+        if message.author != bot.user:
+            if message.guild.me.permissions_in(message.channel).send_messages:
+                #This code checks whether the bot has the permission 'send messages' in the current channel
+                #If the bot can see this message, then it must have the 'read messages' command.
+                #It can be assumed that if a member doesn't want the bot to talk in their channel, then they won't
+                #want commands to be able to be used from that channel.
+                await bot.process_commands(message)
+                #This is to prevent spam of the discord API (invalid requests being sent)
+    else:
         await bot.process_commands(message)
-        #It can be assumed that if a member doesn't want the bot to talk in their channel, then they won't
-        #want commands to be able to be used from that channel.
 
 #The bot-specific token used to log into Discord. A different application will have a different token,
 #and this token is not specific to this code but to the bot account itself (this can change).

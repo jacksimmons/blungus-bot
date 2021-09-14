@@ -100,110 +100,68 @@ class Info(commands.Cog):
 		categories = ''
 		guild = ctx.guild
 
-		for x in range(0, len(guild.roles)):
-			if len(roles) < 250:
-				if len(guild.roles[len(guild.roles)-(x+1)].name) >= 30:
-					roles += f', {guild.roles[len(guild.roles)-(x+1)].name[:30]}...'
-				else:
-					if roles == '':
-						roles += f'{guild.roles[len(guild.roles)-(x+1)].name}'
-					else:
-						roles += f', {guild.roles[len(guild.roles)-(x+1)].name}'
-			elif len(roles) >= 250:
-				roles += f' ... {guild.default_role}'
+		for category in guild.categories:
+			if len(categories) < 250:
+				if categories != '':
+					categories == ', ' #Adds a comma before each value if the string is not empty
+
+				#https://stackoverflow.com/questions/1585322/is-there-a-way-to-perform-if-in-pythons-lambda
+				lambda elpises: True if len(category) > 30 else False
+				#Lambda function to determine if elipses are needed on the end of the name or not (if it has been truncated)
+
+				categories += category.name[:30]
+
+				if elipses:
+					categories += '...'
+			else:
+				categories += '[...]'
 				break
 
-		for x in range(0, len(guild.categories)):
-			if len(categories) < 250:
-				if len(guild.categories[len(guild.categories)-(x+1)].name) >= 30:
-					categories += f'{guild.categories[len(guild.categories)-(x+1)].name[:30]}...'
-				else:
-					if categories == '':
-						categories += f'{guild.categories[x]}'
-					else:
-						categories += f', {guild.categories[x]}'
-			elif len(categories) >= 250:
-				categories += f' ... {guild.categories[len(guild.categories)-(x+1)]}'
+		for role in guild.roles:
+			if len(roles) < 250:
+				if roles != '':
+					roles == ', '
+
+				lambda elipses: True if len(roles) > 30 else False
+
+				roles += role.name[:30]
+
+				if elipses:
+					roles += '...'
+			else:
+				roles += '[...]'
 				break
+
+		if roles == '':
+			roles = None
+		if categories == '':
+			categories = None
 
 		embed = discord.Embed(color=0x00ff00)
-		embed.set_author(name=f"{guild.name} | ID: {guild.id}", icon_url=f"{guild.icon_url}")
-		embed.set_footer(text=f"Requested by {ctx.author}", icon_url=f"{ctx.author.avatar_url}")
+		embed.set_author(name=guild.name, icon_url=guild.icon_url)
+		embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.avatar_url)
 #1
-		embed.add_field(
-		name="Owner",
-		value=f"{guild.owner}",
-		inline=True)
+		embed.add_field(name="Owner", value=guild.owner)
 #2
-		embed.add_field(
-		name="Region",
-		value=f"{guild.region}",
-		inline=True)
+		embed.add_field(name="Region", value=guild.region)
 #3
-		embed.add_field(
-		name="Categories",
-		value=f"{len(guild.categories)}",
-		inline=True)
+		embed.add_field(name="ID", value=guild.id)
 #4
-		embed.add_field(
-		name="Members",
-		value=f"{len(guild.members)}",
-		inline=True)
+		embed.add_field(name="Members", value=str(len(guild.members)))
 #5
-		embed.add_field(
-		name="Bots",
-		value="Bots",
-		inline=True)
+		embed.add_field(name="Text Channels", value=str(len(guild.text_channels)))
 #6
-		embed.add_field(
-		name="Humans",
-		value="Humans",
-		inline=True)
+		embed.add_field(name="Voice Channels", value=str(len(guild.voice_channels)))
 #7
-		embed.add_field(
-		name="Channels",
-		value=f"{len(guild.channels)}",
-		inline=True)
+		embed.add_field(name="File Upload Limit", value=f"{guild.filesize_limit/1000000}MB")
 #8
-		embed.add_field(
-		name="Text Channels",
-		value=f"{len(guild.text_channels)}",
-		inline=True)
+		embed.add_field(name="Emoji Limit", value=f"{guild.emoji_limit} Emoji")
 #9
-		embed.add_field(
-		name="Voice Channels",
-		value=f"{len(guild.voice_channels)}",
-		inline=True)
+		embed.add_field(name="Bitrate Limit", value=f"{guild.bitrate_limit/1000} Kbps")
 #10
-		embed.add_field(
-		name="File Upload Limit",
-		value=f"{guild.filesize_limit/1000000}MB",
-		inline=True)
+		embed.add_field(name="Nitro Boosters", value=str(guild.premium_subscription_count))
 #11
-		embed.add_field(
-		name="Emoji Limit",
-		value=f"{guild.emoji_limit} emoji",
-		inline=True)
-#12
-		embed.add_field(
-		name="Bitrate Limit",
-		value=f"{guild.bitrate_limit/1000} kbps",
-		inline=True)
-#13
-		embed.add_field(
-		name="Roles",
-		value=f"{len(guild.roles)}",
-		inline=True)
-#14
-		embed.add_field(
-		name="Nitro Boosters",
-		value=f"{guild.premium_subscription_count}",
-		inline=True)
-#15
-		embed.add_field(
-		name="Guild Premium Tier",
-		value=f"{guild.premium_tier}",
-		inline=True)
+		embed.add_field(name="Guild Premium Tier", value=str(guild.premium_tier))
 #antepenultimate
 		embed.add_field(
 		name="Server created",
@@ -211,15 +169,14 @@ class Info(commands.Cog):
 		inline=False)
 #penultimate
 		embed.add_field(
-		name="Roles List",
-		value=f"{roles}",
+		name=f"Roles [{len(guild.roles)}]",
+		value=roles,
 		inline=False)
 #ultimate
 		embed.add_field(
-		name="Categories List",
-		value=f"{categories}",
-		inline=False
-		)
+		name=f"Categories [{len(guild.categories)}]",
+		value=categories,
+		inline=False)
 
 		await ctx.send(embed=embed)
 
