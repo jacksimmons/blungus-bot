@@ -51,22 +51,22 @@ class Misc(commands.Cog):
     @commands.command(
         name='ping',
         description='The ping command',
-        aliases=['p']
+        aliases=[]
     )
 
     async def ping_command(self, ctx):
         start = d.timestamp(d.now())
-    	# Gets the timestamp when the command was used
+        # Gets the timestamp when the command was used
 
         msg = await ctx.send('Pinging')
-    	# Sends a message to the user in the channel the message with the command was received.
-    	# Notifies the user that pinging has started
+        # Sends a message to the user in the channel the message with the command was received.
+        # Notifies the user that pinging has started
 
         await msg.edit(content=f'Pong!\nOne message round-trip took {( d.timestamp( d.now() ) - start ) * 1000 }ms.')
-    	# Ping completed and round-trip duration show in ms
-    	# Since it takes a while to send the messages
-    	# it will calculate how much time it takes to edit an message.
-    	# It depends usually on your internet connection speed
+        # Ping completed and round-trip duration show in ms
+        # Since it takes a while to send the messages
+        # it will calculate how much time it takes to edit an message.
+        # It depends usually on your internet connection speed
         return
 
     #---------------------------------------------------------------------------------
@@ -299,7 +299,99 @@ class Misc(commands.Cog):
     async def say_command(self, ctx, *, message: str):
         await ctx.send(message)
 
+    # #---------------------------------------------------------------------------------
+    #
+    # @commands.command(
+    #     name='addslapper',
+    #     description='Add a slapper.',
+    # )
+    #
+    # async def add_slapper(self, ctx, slapper: User):
+    #     with open('data/data.json', 'w') as file:
+    #         contents = json.load(file)
+    #         contents["trolliliyan"]["slappers"].append(slapper.id)
+
     #---------------------------------------------------------------------------------
+
+    @commands.group(
+        name='trolliliyan',
+        description='Trolls Iliyan.',
+        aliases=['ti']
+    )
+
+    async def trolliliyan(self, ctx):
+        if ctx.invoked_subcommand is None:
+            raise commands.BadArgument("Invalid subcommand passed.")
+        pass
+
+    @trolliliyan.command(
+        name='toggle',
+        description='Toggles the trolling of Iliyan.',
+    )
+
+    async def ti_toggle(self, ctx):
+        with open("data/data.json", "r") as file:
+            contents = json.load(file)
+            enabled = contents["trolliliyan"]["enabled"]
+            contents["trolliliyan"]["enabled"] = not enabled
+
+            j = json.dump(contents)
+
+        with open("data/data.json", "w") as file:
+            file.write(j)
+
+    @trolliliyan.command(
+        name='addinsult',
+        description='Adds an insult to Iliyan trolling.'
+    )
+
+    async def ti_addinsult(self, ctx, *, message:str):
+        with open("data/data.json", "r") as file:
+            contents = json.load(file)
+            contents["trolliliyan"]["insults"].append(f"{message}")
+
+            j = json.dumps(contents)
+
+        with open("data/data.json", "w") as file:
+            file.write(j)
+
+    @trolliliyan.command(
+        name='removeinsult',
+        description='Removes an insult from Iliyan trolling.'
+    )
+
+    async def ti_removeinsult(self, ctx, *, message:str):
+        with open("data/data.json", "r") as file:
+            contents = json.load(file)
+            try:
+                contents["trolliliyan"]["insults"].remove(f"{message}")
+            except:
+                ctx.send("No such insult.")
+
+            j = json.dumps(contents)
+
+        with open("data/data.json", "w") as file:
+            file.write(j)
+
+    @trolliliyan.command(
+        name='list',
+        description='Shows all the insults.'
+    )
+
+    async def ti_list(self, ctx):
+        with open("data/data.json", "r") as file:
+            insults = json.load(file)["trolliliyan"]["insults"]
+
+        embed = discord.Embed(color=0x00ff00)
+
+        embed.set_author(name="U mad iliian?")
+        for insult in insults:
+            embed.add_field(name=insults.index(insult)+1, value=insult, inline=True)
+
+        await ctx.send(embed=embed)
+
+    #---------------------------------------------------------------------------------
+
 
 def setup(bot):
     bot.add_cog(Misc(bot))

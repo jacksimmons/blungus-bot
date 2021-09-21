@@ -185,7 +185,7 @@ class Godmode(commands.Cog):
     @commands.command(
         name='quit',
         description='Shuts down the bot.',
-        aliases=['q']
+		aliases=['exit']
     )
 
     @commands.is_owner()
@@ -194,5 +194,6 @@ class Godmode(commands.Cog):
         await self.bot.close()
 
     #---------------------------------------------------------------------------------
+
 def setup(bot):
     bot.add_cog(Godmode(bot))

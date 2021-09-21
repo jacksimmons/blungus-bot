@@ -14,7 +14,10 @@ import json
 #channel that the bot has access to and can send messages to.
 from discord.ext import commands
 
-cogs = ['cogs.miscellaneous','cogs.music','cogs.godmode','cogs.administrator','cogs.information','cogs.error_handler','cogs.sentience']
+cogs = ['cogs.miscellaneous','cogs.music','cogs.godmode','cogs.administrator','cogs.information','cogs.error_handler']
+
+global efpe
+efpe = 0
 
 def get_prefix(bot, message):
 
@@ -26,12 +29,15 @@ def get_prefix(bot, message):
     return commands.when_mentioned_or(*prefixes)(bot, message) #Allow users to mention the bot instead of using a prefix when using a command.
     #Replace with 'return prefixes' to prevent mentions instead of prefix.
 
+intents = discord.Intents.all()
+
 # Create a new bot, set the prefix, set the description, set the Owner ID and determine whether the bot is case-sensitive or not.
 bot = commands.Bot(
     command_prefix=get_prefix, # Set the command prefix equal to the prefix defined earlier
     description='Description', # Set the description to describe what the bot does
     owner_id=354995879565852672, # Set the Owner ID so the bot knows who the owner is
-    case_insensitive=True # The bot is not case-sensitive
+    case_insensitive=True, # The bot is not case-sensitive
+    intents=intents
 )
 
 @bot.event
@@ -44,8 +50,6 @@ async def on_ready():
     await bot.change_presence(activity=discord.Activity(name=f'{len(bot.users)*1420} chungas', status=discord.Status.offline, type=3))
     for cog in cogs:
         bot.load_extension(cog)
-    channel = ''
-    guild = ''
     return
 
 @bot.event
@@ -87,9 +91,18 @@ async def on_message(message):
                 #want commands to be able to be used from that channel.
                 await bot.process_commands(message)
                 #This is to prevent spam of the discord API (invalid requests being sent)
+                if message.author.id == 267395298370781194:
+                    with open("data/data.json", "r") as file:
+                        try:
+                            insult = random.choice(json.load(file)["trolliliyan"]["insults"])
+                            await message.channel.send(insult)
+                            await message.add_reaction(await message.guild.fetch_emoji('882070759869120593'))
+                        except:
+                            pass
+        
     else:
         await bot.process_commands(message)
 
 #The bot-specific token used to log into Discord. A different application will have a different token,
 #and this token is not specific to this code but to the bot account itself (this can change).
-bot.run('NjIxNzQxNTc2OTAwNTc1Mjcz.Xai_cg.3kCigmde-3FNnxMlq97x-RIBZnk', bot=True, reconnect=True)
+bot.run('NjIxNzQxNTc2OTAwNTc1Mjcz.XXpv9w.gwh8PFVfPSNgSFWeTJ86PW9ZqKQ', bot=True, reconnect=True)
