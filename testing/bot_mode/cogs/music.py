@@ -33,7 +33,7 @@ player = None
 play_message = None
 
 class YTDLSource(discord.PCMVolumeTransformer):
-    def __init__(self, source, *, data, volume=0.5):
+    def __init__(self, source, *, data, volume=1):
         super().__init__(source, volume)
         self.data = data # Has lots of information about the YouTube video being played.
         self.title = data.get('title')
@@ -56,6 +56,7 @@ class Music(commands.Cog):
         self.bot = bot
         self.source_channel = None
         self.bound_member = None
+        self.queue = []
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
@@ -82,6 +83,12 @@ class Music(commands.Cog):
                             else:
                                 await self.source_channel.send("I was disconnected from voice, so the player has stopped.")
 
+    def after_song(self, ctx, e):
+        print("Player error % e", e)
+        self.queue.pop(0)
+        if len(self.queue) > 0:
+            ctx.voice_client.play(player, after=lambda e: self.after_song(ctx,e))
+
     @commands.command()
     async def join(self, ctx):
         """Joins your voice channel"""
@@ -94,33 +101,42 @@ class Music(commands.Cog):
         else:
             raise commands.CommandError(f"{ctx.author.mention}, you are not currently connected to a voice channel.")
 
-    @commands.command()
+    @commands.command(
+        name="skip",
+        description="Skips the current song.")
+
+    async def skip(self, ctx):
+        async with ctx.typing():
+            await ctx.voice_client.stop()
+            self.after_song(ctx, None)
+            await ctx.send(">>>**Skipped.")
+
+    @commands.command(
+        name="play",
+        description="Plays from a url (almost anything youtube_dl supports)",
+        aliases=['p'])
+
     async def play(self, ctx, *, url):
-        """Plays from a url (almost anything youtube_dl supports)"""
         async with ctx.typing():
+            stream = False # Will the play command download to computer or stream it?
+
+            data = await self.bot.loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+
+            if 'entries' in data:
+                # take first item from a playlist
+                data = data['entries'][0]
+
             player = await YTDLSource.from_url(url, loop=self.bot.loop)
-            ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
+            self.queue.append(player)
 
-            await ctx.send(f'''>>> **Now playing: `{player.title}` by `{player.data.get('uploader')}`
-Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **''')
+            if len(self.queue) == 1:
+                ctx.voice_client.play(player, after=lambda e: self.after_song(ctx,e))
+                await ctx.send(f'''>>> **Now playing: `{data['title']}` by `{data['uploader']}`
+Duration: `{str(datetime.timedelta(seconds=data['duration']))}` **''')
 
-    @commands.command()
-    async def localplay(self, ctx, *, query):
-        """Plays a file from the local filesystem"""
-
-        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(query))
-        ctx.voice_client.play(source, after=lambda e: print('Player error: %s' % e) if e else None)
-        await ctx.send(f'Now playing: {query}')
-
-    @commands.command()
-    async def stream(self, ctx, *, url):
-        """Streams from a url (same as yt, but doesn't predownload)"""
-
-        async with ctx.typing():
-            player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
-            ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
-
-        await ctx.send(f'Now playing: {player.title}')
+            else:
+                await ctx.send(f'''>>> **Added to queue [Position {len(self.queue)}]: `{data['title']}` by `{data['uploader']}`
+Duration: `{str(datetime.timedelta(seconds=data['duration']))}` **''')
 
     @commands.command()
     async def pause(self, ctx):
@@ -242,10 +258,6 @@ Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **'''
                 raise commands.CommandError(ctx.author.name + ": You do not have the `move members` permission required for this command.")
         else:
             raise commands.CommandError(ctx.author.name + ": You are not connected to a voice channel.")
-
-    @localplay.before_invoke
-    @play.before_invoke
-    @stream.before_invoke
 
     async def ensure_voice(self, ctx):
         if ctx.author.voice:
