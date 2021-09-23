@@ -47,7 +47,7 @@ async def on_ready():
     print(f'Latency: {bot.latency}')
     print(f'Created at: {bot.user.created_at.hour}:{bot.user.created_at.minute} {bot.user.created_at.day}/{bot.user.created_at.month}/{bot.user.created_at.year}')
     print('---Ready---')
-    await bot.change_presence(activity=discord.Activity(name=f'{len(bot.users)*1420} chungas', status=discord.Status.offline, type=3))
+    await bot.change_presence(activity=discord.Activity(name=f'{(len(bot.users)*4201337)}i chungas', status=discord.Status.offline, type=3))
     for cog in cogs:
         bot.load_extension(cog)
     return

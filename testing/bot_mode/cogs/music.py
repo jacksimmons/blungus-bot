@@ -9,6 +9,8 @@ from discord.ext import commands
 # Suppress noise about console usage from errors
 youtube_dl.utils.bug_reports_message = lambda: ''
 
+pbs = 1
+
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
@@ -23,14 +25,7 @@ ytdl_format_options = {
     'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
 }
 
-ffmpeg_options = {
-    'options': '-vn'
-}
-
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-
-player = None
-play_message = None
 
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=1):
@@ -38,18 +33,30 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.data = data # Has lots of information about the YouTube video being played.
         self.title = data.get('title')
         self.url = data.get('url')
+        
+    @classmethod
+    async def from_url_extract(cls, data, loop=None, stream=False, ffmpeg_options={}):
+        filename = data['url'] if stream else ytdl.prepare_filename(data)
+        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=False):
+        global pbs
+        ffmpeg_options = {
+            'options': f'-vn -filter:a "atempo={pbs}"',
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
+        }
+
         loop = loop or asyncio.get_event_loop()
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
 
+        songs = []
         if 'entries' in data:
-            # take first item from a playlist
-            data = data['entries'][0]
-
-        filename = data['url'] if stream else ytdl.prepare_filename(data)
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+            for entry in data['entries']:
+                songs.append(await cls.from_url_extract(entry, loop, stream, ffmpeg_options))
+        else:
+            songs.append(await cls.from_url_extract(data, loop, stream, ffmpeg_options))
+        return songs
 
 class Music(commands.Cog):
     def __init__(self, bot):
@@ -85,9 +92,10 @@ class Music(commands.Cog):
 
     def after_song(self, ctx, e):
         print("Player error % e", e)
-        self.queue.pop(0)
         if len(self.queue) > 0:
-            ctx.voice_client.play(player, after=lambda e: self.after_song(ctx,e))
+            self.queue.pop(0)
+            if len(self.queue) > 0:
+                ctx.voice_client.play(self.queue[0], after=lambda e: self.after_song(ctx,e))
 
     @commands.command()
     async def join(self, ctx):
@@ -102,14 +110,28 @@ class Music(commands.Cog):
             raise commands.CommandError(f"{ctx.author.mention}, you are not currently connected to a voice channel.")
 
     @commands.command(
-        name="skip",
-        description="Skips the current song.")
+        name="queue",
+        description="Lists the current song queue.",
+        aliases=['q'])
 
-    async def skip(self, ctx):
-        async with ctx.typing():
-            await ctx.voice_client.stop()
-            self.after_song(ctx, None)
-            await ctx.send(">>>**Skipped.")
+    async def queue(self, ctx):
+        embed = discord.Embed(color=0xFF0000)
+
+        embed.set_author(name=f"Queue ({len(self.queue)})")
+        for song in self.queue:
+            embed.add_field(name=self.queue.index(song)+1, value=f'{song.title}', inline=False)
+
+        await ctx.send(embed=embed)
+
+    @commands.command(
+        name="clearqueue",
+        description="Clears the current song queue.",
+        aliases=['cq'])
+
+    @commands.has_permissions(manage_channels=True)
+    async def clear_queue(self, ctx):
+        self.queue = []
+        await ctx.send("**Queue has been cleared.**")
 
     @commands.command(
         name="play",
@@ -118,25 +140,47 @@ class Music(commands.Cog):
 
     async def play(self, ctx, *, url):
         async with ctx.typing():
-            stream = False # Will the play command download to computer or stream it?
+            players = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+            for player in players:
+                self.queue.append(player)
 
-            data = await self.bot.loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-
-            if 'entries' in data:
-                # take first item from a playlist
-                data = data['entries'][0]
-
-            player = await YTDLSource.from_url(url, loop=self.bot.loop)
-            self.queue.append(player)
-
-            if len(self.queue) == 1:
-                ctx.voice_client.play(player, after=lambda e: self.after_song(ctx,e))
-                await ctx.send(f'''>>> **Now playing: `{data['title']}` by `{data['uploader']}`
-Duration: `{str(datetime.timedelta(seconds=data['duration']))}` **''')
-
+            if not ctx.voice_client.is_playing():
+                ctx.voice_client.play(self.queue[0], after=lambda e: self.after_song(ctx,e))
+                sendStr = '>>> **Now playing: '
             else:
-                await ctx.send(f'''>>> **Added to queue [Position {len(self.queue)}]: `{data['title']}` by `{data['uploader']}`
-Duration: `{str(datetime.timedelta(seconds=data['duration']))}` **''')
+                sendStr = '>>> **Added to queue, position'
+                if len(players) > 1:
+                    sendStr += f's {len(self.queue)-len(players)} to {len(self.queue)}: '
+                else:
+                    sendStr += f' {len(self.queue)}: '
+
+            sendStr += f'''`{player.title}` by `{player.data.get('uploader')}`
+            Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **'''
+            await ctx.send(sendStr)
+
+    @commands.command()
+    async def stop(self, ctx):
+        """Stops the current song."""
+        if ctx.voice_client is not None:
+            if ctx.author.voice.channel == ctx.guild.me.voice.channel:
+                if ctx.voice_client.is_playing():
+                    ctx.voice_client.stop()
+                    await ctx.send("**Stopped.**")
+                else:
+                    raise commands.CommandError("No music is playing.")
+            else:
+                raise commands.CommandError("You are not connected to this vc.")
+        else:
+            raise commands.CommandError("I am not connected to a vc.")
+
+    @commands.command(
+        name="skip",
+        description="Skips the current song.")
+
+    async def skip(self, ctx):
+        await self.stop(ctx)
+        self.after_song(ctx, None)
+        await ctx.send("**Skipped.**")
 
     @commands.command()
     async def pause(self, ctx):
@@ -152,77 +196,71 @@ Duration: `{str(datetime.timedelta(seconds=data['duration']))}` **''')
     @commands.command()
     async def resume(self, ctx):
         """Resumes the current video"""
-        if ctx.voice_client.is_paused() == True:
+        if ctx.voice_client.is_paused():
             ctx.voice_client.resume()
-
             await ctx.send("**Resumed**")
         else:
             raise commands.CommandError("The music is not currently paused.")
 
+    @commands.command(
+        name='playbackspeed',
+        description="Outputs the current playback speed multiplier.",
+        aliases=['atempo', 'aspeed', 'pbs'])
+
+    async def playback_speed(self, ctx):
+        global pbs
+        await ctx.send(f"**Playback speed: `{pbs}x`**")
+
+    @commands.command(
+        name='setplaybackspeed',
+        description="Changes atempo value in ffmpeg. (Speeds up or slows down audio to [pbs])",
+        aliases=['setatempo', 'setaspeed', 'spbs'])
+
+    async def change_playback_speed(self, ctx, playback_speed: float):
+        if ctx.voice_client is None:
+            raise commands.CommandError("I am not connected to any voice channels.")
+
+        elif ctx.author.voice.channel == ctx.voice_client.channel:
+            # If the user is in the same channel as me...
+            if 0 < playback_speed:
+                global pbs
+                pbs = playback_speed
+                await ctx.send(f"**Set playback speed to `{pbs}x`. Effects will be applied on the next play command.**")
+            else:
+                raise commands.CommandError("Playback speed must be in range (0, ∞).")
+
+        else:
+            raise commands.CommandError("No trooling.")
+                
     @commands.command(name='volume', aliases=['v','vol'])
-    async def volume(self, ctx, volume: int):
+    async def volume(self, ctx, volume: float):
         """Changes the player's volume"""
 
         if ctx.voice_client is None:
             raise commands.CommandError("I am not connected to any voice channels.")
 
         elif ctx.author.voice.channel == ctx.voice_client.channel:
-            if 0 < volume < 200:
-                await ctx.send(f"Changed volume to {volume}%")
-            elif volume >= 200:
-                await ctx.send(f"Changed volume to 200% (Maximum)")
-                volume = 200
+            if 0 <= volume <= 2:
+                ctx.voice_client.source.volume = volume
             else:
-                await ctx.send(f"Changed volume to 0% (Minimum)")
-                volume = 0
-
-            ctx.voice_client.source.volume = volume / 100
+                raise commands.CommandError("Volume must be in range [0, 2]")
 
         else:
-            raise commands.CommandError("No music currently playing.")
-
-    @commands.command()
-    async def bind(self, ctx):
-        """Binds the music bot to you, so when you join a new voice channel, it will follow you.
-        While you are the bound member, you have a lot of control over the bot's voice status."""
-
-        if ctx.author.voice is not None:
-
-            if ctx.voice_client is not None:
-                await ctx.voice_client.move_to(ctx.author.voice.channel)
-            else:
-                await ctx.author.voice.channel.connect()
-
-            self.bound_member = ctx.author
-            self.source_channel = ctx.channel
-
-            await ctx.send(f"I am now bound to you, {ctx.author.name}. If you **disconnect**, I will become unbound from you, but feel free to **move** from one voice channel to another.")
-        else:
-            raise commands.CommandError("You aren't connected to a voice channel.")
-
-    @commands.command()
-    async def unbind(self, ctx):
-        """Unbinds any bound member that may exist."""
-
-        if self.bound_member is not None:
-            self.bound_member = None
-            await ctx.send("I am no longer bound to anyone.")
-        else:
-            raise commands.CommandError(f"{ctx.author.mention}, I am not currently bound to anyone.")
+            raise commands.CommandError("No trooling.")
 
     @commands.command()
     async def leave(self, ctx):
         """Stops and disconnects the bot from voice"""
 
-        if self.bound_member is not None:
-            await ctx.send(f"I am no longer bound to {ctx.author.name}.")
-            self.bound_member = None
-
         if ctx.voice_client is not None:
-            if ctx.voice_client.is_playing():
-                await ctx.send("The player has stopped.")
-
-        await ctx.voice_client.disconnect()
+            if ctx.author.voice.channel == ctx.guild.me.voice.channel:
+                if ctx.voice_client.is_playing():
+                    await ctx.send("The player has stopped.")
+                await ctx.voice_client.disconnect()
+            else:
+                raise commands.CommandError("No trooling.")
+        else:
+            raise commands.CommandError("I am not currently in any voice channels.")
 
     @commands.command(
         name='move',
@@ -259,21 +297,29 @@ Duration: `{str(datetime.timedelta(seconds=data['duration']))}` **''')
         else:
             raise commands.CommandError(ctx.author.name + ": You are not connected to a voice channel.")
 
+    @play.before_invoke
     async def ensure_voice(self, ctx):
-        if ctx.author.voice:
-            if ctx.guild.me.permissions_in(ctx.author.voice.channel).connect == True:
-                if ctx.guild.me.permissions_in(ctx.author.voice.channel).speak == True:
-                    if ctx.voice_client is None:
-                        await ctx.author.voice.channel.connect()
-                    else:
-                        if ctx.voice_client.is_playing():
-                            ctx.voice_client.stop()
-                        await ctx.voice_client.move_to(ctx.author.voice.channel)
-                else:
-                    raise commands.CommandError(f"{ctx.author.name}, I am not permitted to play audio in that channel.")
-            else:
-                raise commands.CommandError(f"{ctx.author.name}, I am not permitted to join that channel.")
+        if ctx.author.voice: #If the user is in a voice channel...
+            in_user_vc = False #Default value - if voice_client is None then it stays False.
+            if ctx.voice_client is not None:
+                in_user_vc = ctx.guild.me.voice.channel == ctx.author.voice.channel
 
+            if not in_user_vc:
+                if ctx.guild.me.permissions_in(ctx.author.voice.channel).connect == True: #...If I can join that channel...
+                    if ctx.guild.me.permissions_in(ctx.author.voice.channel).speak == True: #...If I can speak in that channel...
+                        if ctx.voice_client is None: #...If I am not in a vc, then join user's vc.
+                            await ctx.author.voice.channel.connect()
+                        else: #...If I am already in a vc, then switch to their vc (as I cannot already be in their vc)
+                            if ctx.guild.me.voice.channel != ctx.author.voice.channel: #... provided that I am not already in THEIR vc.
+                                if ctx.voice_client.is_playing(): #!!!
+                                    ctx.voice_client.stop()
+                                await ctx.voice_client.move_to(ctx.author.voice.channel)
+                    else:
+                        raise commands.CommandError(f"{ctx.author.name}, I am not permitted to play audio in that channel.")
+                else:
+                    raise commands.CommandError(f"{ctx.author.name}, I am not permitted to join that channel.")
+            else:
+                pass #When I am already in the user's channel.
         else:
             raise commands.CommandError("You are not connected to a voice channel.")
 
