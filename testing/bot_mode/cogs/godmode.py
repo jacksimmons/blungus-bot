@@ -109,7 +109,8 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def broadcast_command(self, ctx, channel: discord.TextChannel, quantity: int, *, message: str):
+    async def broadcast_command(self, ctx, channel_id: int, quantity: int, *, message: str):
+        channel = self.bot.get_channel(channel_id)
         i = 0
         msg = await ctx.send(f"Broadcasting '{message}' {quantity} times to Channel <#{channel.id}>, {ctx.message.author}.")
         while i < quantity:

@@ -78,10 +78,6 @@ class Misc(commands.Cog):
     )
 
     async def _tag(self, ctx, *, name):
-
-        import os
-        os.chdir('../bot_mode')
-
         with open('data/guilds.json', 'r') as file:
             #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
             #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify

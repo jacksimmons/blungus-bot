@@ -7,6 +7,10 @@ start = d.timestamp(d.now())
 import discord
 import random
 import json
+import os
+
+print(os.getcwd())
+os.chdir('testing/bot_mode') #Starting dir is miniature-meme/
 
 #Import 'commands' which allows the creation of commands that are 'invoked' by a certain keyword
 #e.g. 'help', which displays the default help command. This keyword must have the 'prefix' before it
@@ -54,29 +58,25 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    import os
-    os.chdir('../bot_mode')
     with open('data/guilds.json', 'r') as file:
         theguild = json.load(file)[str(member.guild.id)]
 
         if 'channels' in theguild:
             if 'welcome' in theguild['channels']:
                 try:
-                    await member.guild.get_channel(theguild['channels']['welcome']).send(f'{member} [{member.mention}] has joined the server.')
+                    await member.guild.get_channel(theguild['channels']['welcome']).send(f'{member} [{member.mention}] farted.')
                 except discord.Forbidden:
                     pass #Nothing we can do about this
 
 @bot.event
 async def on_member_remove(member):
-    import os
-    os.chdir('../bot_mode')
     with open('data/guilds.json', 'r') as file:
         theguild = json.load(file)[str(member.guild.id)]
 
         if 'channels' in theguild:
             if 'welcome' in theguild['channels']: #Not required but included just in case
                 try:
-                    await member.guild.get_channel(theguild['channels']['welcome']).send(f'{member} [{member.mention}] has left the server.')
+                    await member.guild.get_channel(theguild['channels']['welcome']).send(f'{member} [{member.mention}] defarted.')
                 except discord.Forbidden:
                     pass #Nothing we can do about this
 
@@ -99,7 +99,6 @@ async def on_message(message):
                             await message.add_reaction(await message.guild.fetch_emoji('882070759869120593'))
                         except:
                             pass
-        
     else:
         await bot.process_commands(message)
 
