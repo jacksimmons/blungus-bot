@@ -321,10 +321,6 @@ class Setup(commands.Cog):
 
     @_welcome.command(name='set', help='Set the channel for which welcome messages will be displayed in.')
     async def setup_welcome_messages(self, ctx, channel:discord.TextChannel):
-
-        import os
-        os.chdir('../bot_mode')
-
         with open('data/guilds.json', 'r+') as file:
             #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
             #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
@@ -354,10 +350,6 @@ class Setup(commands.Cog):
     async def toggle_welcome_messages(self, ctx):
 
         output = ''
-
-        import os
-        os.chdir('../bot_mode')
-
         with open('data/guilds.json', 'r+') as file:
             #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
             #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
@@ -393,9 +385,6 @@ class Setup(commands.Cog):
     @_welcome.command(name='disable', help='Disables welcome messages.')
     async def disable_welcome_messages(self, ctx):
 
-        import os
-        os.chdir('../bot_mode')
-
         with open('data/guilds.json', 'r+') as file:
             data = json.load(file)
             file.seek(0)
@@ -429,9 +418,6 @@ class Setup(commands.Cog):
 
     @commands.guild_only()
     async def _tags(self, ctx):
-
-        import os
-        os.chdir('../bot_mode')
 
         with open('data/guilds.json', 'r') as file:
             data = json.load(file)
@@ -469,12 +455,7 @@ class Setup(commands.Cog):
     @_tags.command(name='create', aliases=['add','c'])
     async def _tagcreate(self, ctx, name, *, value):
         """Create a tag."""
-
         if len(name) <= 30:
-
-            import os
-            os.chdir('../bot_mode')
-
             with open('data/guilds.json', 'r+') as file:
 
                 #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python

@@ -158,6 +158,25 @@ class Music(commands.Cog):
             Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **'''
             await ctx.send(sendStr)
 
+    @commands.command(
+        name="localplay",
+        description="Plays from the local filesystem.",
+        aliases=['lp'])
+
+    @commands.is_owner()
+    async def localplay(self, ctx, *, path):
+        async with ctx.typing():
+            player = await YTDLSource.from_url(path, loop=self.bot.loop, stream=False)
+            self.queue.append(player)
+
+            if not ctx.voice_client.is_playing():
+                ctx.voice_client.play(path, after=lambda e: self.after_song(ctx, e))
+                sendStr = '>>> **Now playing locally: '
+            else:
+                sendStr = f'>>> **Added local file to queue, position {len(self.queue)}'
+
+            await ctx.send(sendStr)
+
     @commands.command()
     async def stop(self, ctx):
         """Stops the current song."""
@@ -222,12 +241,12 @@ class Music(commands.Cog):
 
         elif ctx.author.voice.channel == ctx.voice_client.channel:
             # If the user is in the same channel as me...
-            if 0 < playback_speed:
+            if 0.5 < playback_speed < 100:
                 global pbs
                 pbs = playback_speed
                 await ctx.send(f"**Set playback speed to `{pbs}x`. Effects will be applied on the next play command.**")
             else:
-                raise commands.CommandError("Playback speed must be in range (0, ∞).")
+                raise commands.CommandError("Playback speed must be in range [0.5, 100].")
 
         else:
             raise commands.CommandError("No trooling.")

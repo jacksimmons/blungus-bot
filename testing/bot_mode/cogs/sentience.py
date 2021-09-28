@@ -104,10 +104,6 @@ class CleverChungus(commands.Cog):
     @commands.guild_only()
     @commands.command(name='setchatchannel', help='Sets the channel that the bot will respond to your messages in.')
     async def _setchatchannel(self, ctx, channel:discord.TextChannel):
-
-        import os
-        os.chdir('../')
-
         with open('data/guilds.json', 'r+') as file:
             #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
             #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
@@ -134,10 +130,6 @@ class CleverChungus(commands.Cog):
 
     @commands.command(name='removechatchannel', help='Removes the channel that the bot previously used for responding to your messages in, if there was one.')
     async def _removechatchannel(self, ctx):
-
-        import os
-        os.chdir('../')
-
         with open('data/guilds.json', 'r+') as file: #Determines speaking_zone value; this is set to 0 if a channel was not found in 'guilds.json'
             #Using 'r+' mode to allow writing and reading to the file.
             #Sources: see '_setchatchannel' (above)
@@ -204,9 +196,6 @@ class CleverChungus(commands.Cog):
 
         await m.edit(content="Reading messages... **Done**")
         n = await ctx.send("Writing messages...")
-
-        import os
-        os.chdir('../')
 
         with open('data/responses.csv', 'a') as csvdata:
             writer = csv.writer(csvdata)

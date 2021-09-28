@@ -43,9 +43,6 @@ class Base:
         return output
 
     async def csv_input_prune(filename): #Removes repeated inputs
-
-        os.chdir('../bot_mode')
-
         with open(filename, 'r') as csvdata:
             reader = csv.reader(csvdata)
 
@@ -86,9 +83,6 @@ class Base:
                 writer.writerow(row)
 
     async def csv_output_prune(filename): #Removes repeated outputs
-
-        os.chdir('../bot_mode')
-
         with open(filename, 'r') as csvdata:
             reader = csv.reader(csvdata)
 
