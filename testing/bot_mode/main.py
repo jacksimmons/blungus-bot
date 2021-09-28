@@ -20,8 +20,7 @@ from discord.ext import commands
 
 cogs = ['cogs.miscellaneous','cogs.music','cogs.godmode','cogs.administrator','cogs.information','cogs.error_handler']
 
-global efpe
-efpe = 0
+intents = discord.Intents.all()
 
 def get_prefix(bot, message):
 
@@ -32,8 +31,6 @@ def get_prefix(bot, message):
 
     return commands.when_mentioned_or(*prefixes)(bot, message) #Allow users to mention the bot instead of using a prefix when using a command.
     #Replace with 'return prefixes' to prevent mentions instead of prefix.
-
-intents = discord.Intents.all()
 
 # Create a new bot, set the prefix, set the description, set the Owner ID and determine whether the bot is case-sensitive or not.
 bot = commands.Bot(
