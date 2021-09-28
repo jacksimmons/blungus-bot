@@ -72,11 +72,12 @@ class Info(commands.Cog):
 
         embed.add_field(name="Name", value=member.name, inline=True)
         embed.add_field(name="ID", value=member.id, inline=True)
-
         embed.add_field(name="Account created", value=f"{dotw[member.created_at.weekday()]}, {member.created_at.day} {moty[member.created_at.month-1]} {member.created_at.year}", inline=True)
+        
         embed.add_field(name="Joined guild", value=f"{dotw[member.joined_at.weekday()]}, {member.joined_at.day} {moty[member.joined_at.month-1]} {member.joined_at.year}", inline=True)
-
         embed.add_field(name="Bot", value=member.bot, inline=True)
+        if member == member.guild.me:
+            embed.add_field(name="Absolute Unit", value="Yes", inline=True)
 
         embed.add_field(name=f"Roles [{len(member.roles)-1}]", value=roles, inline=False)
 

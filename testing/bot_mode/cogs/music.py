@@ -27,6 +27,8 @@ ytdl_format_options = {
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
+#---------------------------------------------------------------------------------
+
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=1):
         super().__init__(source, volume)
@@ -58,12 +60,17 @@ class YTDLSource(discord.PCMVolumeTransformer):
             songs.append(await cls.from_url_extract(data, loop, stream, ffmpeg_options))
         return songs
 
+#---------------------------------------------------------------------------------
+
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.source_channel = None
         self.bound_member = None
         self.queue = []
+        self.prev = None
+        
+    #---------------------------------------------------------------------------------
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
@@ -90,6 +97,8 @@ class Music(commands.Cog):
                             else:
                                 await self.source_channel.send("I was disconnected from voice, so the player has stopped.")
 
+    #---------------------------------------------------------------------------------
+
     def after_song(self, ctx, e):
         print("Player error % e", e)
         if len(self.queue) > 0:
@@ -97,7 +106,9 @@ class Music(commands.Cog):
             if len(self.queue) > 0:
                 ctx.voice_client.play(self.queue[0], after=lambda e: self.after_song(ctx,e))
 
-    @commands.command()
+    #---------------------------------------------------------------------------------
+
+    @commands.command(name='join', description='Joins your voice channel.', aliases=[])
     async def join(self, ctx):
         """Joins your voice channel"""
 
@@ -109,11 +120,9 @@ class Music(commands.Cog):
         else:
             raise commands.CommandError(f"{ctx.author.mention}, you are not currently connected to a voice channel.")
 
-    @commands.command(
-        name="queue",
-        description="Lists the current song queue.",
-        aliases=['q'])
+    #---------------------------------------------------------------------------------
 
+    @commands.command(name='queue', description='Displays the song queue.', aliases=['q'])
     async def queue(self, ctx):
         embed = discord.Embed(color=0xFF0000)
 
@@ -123,26 +132,24 @@ class Music(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(
-        name="clearqueue",
-        description="Clears the current song queue.",
-        aliases=['cq'])
+    #---------------------------------------------------------------------------------
 
+    @commands.command(name='clear', description='Clears the song queue.', aliases=['cq'])
     @commands.has_permissions(manage_channels=True)
     async def clear_queue(self, ctx):
         self.queue = []
         await ctx.send("**Queue has been cleared.**")
 
-    @commands.command(
-        name="play",
-        description="Plays from a url (almost anything youtube_dl supports)",
-        aliases=['p'])
+    #---------------------------------------------------------------------------------
 
+    @commands.command(name='play', description='Plays YouTube audio from a URL using ytdl.', aliases=['p'])
     async def play(self, ctx, *, url):
         async with ctx.typing():
             players = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
             for player in players:
                 self.queue.append(player)
+
+            self.prev = players[-1]
 
             if not ctx.voice_client.is_playing():
                 ctx.voice_client.play(self.queue[0], after=lambda e: self.after_song(ctx,e))
@@ -158,16 +165,16 @@ class Music(commands.Cog):
             Duration: `{str(datetime.timedelta(seconds=player.data.get('duration')))}` **'''
             await ctx.send(sendStr)
 
-    @commands.command(
-        name="localplay",
-        description="Plays from the local filesystem.",
-        aliases=['lp'])
+    #---------------------------------------------------------------------------------
 
+    @commands.command(name='localplay', description='Plays local audio from my computer.', aliases=['lp'])
     @commands.is_owner()
     async def localplay(self, ctx, *, path):
         async with ctx.typing():
             player = await YTDLSource.from_url(path, loop=self.bot.loop, stream=False)
             self.queue.append(player)
+
+            self.prev = player
 
             if not ctx.voice_client.is_playing():
                 ctx.voice_client.play(path, after=lambda e: self.after_song(ctx, e))
@@ -177,14 +184,20 @@ class Music(commands.Cog):
 
             await ctx.send(sendStr)
 
-    @commands.command()
-    async def stop(self, ctx):
-        """Stops the current song."""
+    #---------------------------------------------------------------------------------
+
+    @commands.command(name='previous', description='Replays the audio that was just played.', aliases=['|<', 'prev'])
+    @commands.has_permissions(manage_channels=True)
+    async def prev(self, ctx):
         if ctx.voice_client is not None:
             if ctx.author.voice.channel == ctx.guild.me.voice.channel:
                 if ctx.voice_client.is_playing():
-                    ctx.voice_client.stop()
-                    await ctx.send("**Stopped.**")
+                    if self.prev != None:
+                        ctx.voice_client.stop()
+                        await ctx.voice_client.play(self.prev, after=lambda e: self.after_song(ctx,e))
+                        await ctx.send("**Replaying previous audio.**")
+                    else:
+                        raise commands.CommandError("I have not played any audio in this server since my last startup.")
                 else:
                     raise commands.CommandError("No music is playing.")
             else:
@@ -192,18 +205,36 @@ class Music(commands.Cog):
         else:
             raise commands.CommandError("I am not connected to a vc.")
 
-    @commands.command(
-        name="skip",
-        description="Skips the current song.")
-
+    #---------------------------------------------------------------------------------
+    
+    @commands.command(name='next', description='Goes to the next audio in the queue.', aliases=['>|', 'skip'])
+    @commands.has_permissions(manage_channels=True)
     async def skip(self, ctx):
-        await self.stop(ctx)
-        self.after_song(ctx, None)
-        await ctx.send("**Skipped.**")
+        if ctx.voice_client is not None:
+            if ctx.author.voice.channel == ctx.guild.me.voice.channel:
+                if ctx.voice_client.is_playing():
+                    ctx.voice_client.stop()
+                    await ctx.send("**Skipped.**")
+                else:
+                    raise commands.CommandError("No music is playing.")
+            else:
+                raise commands.CommandError("You are not connected to this vc.")
+        else:
+            raise commands.CommandError("I am not connected to a vc.")
 
-    @commands.command()
+    #---------------------------------------------------------------------------------
+
+    @commands.command(name='stop', description='Stops the current audio and clears the queue.', aliases=['[]'])
+    @commands.has_permissions(manage_channels=True)
+    async def stop(self, ctx):
+        await self.skip(ctx)
+        self.queue = []
+        await ctx.send("**Stopped.**")
+
+    #---------------------------------------------------------------------------------
+
+    @commands.command(name='pause', description='Pauses the current audio.', aliases=['||'])
     async def pause(self, ctx):
-        """Pauses the current video"""
         if ctx.voice_client.is_playing() == True:
             ctx.voice_client.pause()
 
@@ -212,30 +243,28 @@ class Music(commands.Cog):
         else:
             raise commands.CommandError("The music is already paused.")
 
-    @commands.command()
+    #---------------------------------------------------------------------------------
+
+    @commands.command(name='resume', description='Resumes the current audio.', aliases=['|>'])
     async def resume(self, ctx):
-        """Resumes the current video"""
         if ctx.voice_client.is_paused():
             ctx.voice_client.resume()
             await ctx.send("**Resumed**")
         else:
             raise commands.CommandError("The music is not currently paused.")
 
-    @commands.command(
-        name='playbackspeed',
-        description="Outputs the current playback speed multiplier.",
-        aliases=['atempo', 'aspeed', 'pbs'])
+    #---------------------------------------------------------------------------------
 
+    @commands.command(name='playbackspeed', description='Displays the current audio playback speed multiplier.', aliases=['pbs', 'tempo'])
     async def playback_speed(self, ctx):
         global pbs
         await ctx.send(f"**Playback speed: `{pbs}x`**")
 
-    @commands.command(
-        name='setplaybackspeed',
-        description="Changes atempo value in ffmpeg. (Speeds up or slows down audio to [pbs])",
-        aliases=['setatempo', 'setaspeed', 'spbs'])
+    #---------------------------------------------------------------------------------
 
-    async def change_playback_speed(self, ctx, playback_speed: float):
+    @commands.command(name='setplaybackspeed', description='Sets the audio playback speed multiplier. [0.5, 100]', aliases=['spbs', 'settempo'])
+    @commands.has_permissions(manage_channels=True)
+    async def set_playback_speed(self, ctx, playback_speed: float):
         if ctx.voice_client is None:
             raise commands.CommandError("I am not connected to any voice channels.")
 
@@ -250,11 +279,18 @@ class Music(commands.Cog):
 
         else:
             raise commands.CommandError("No trooling.")
-                
-    @commands.command(name='volume', aliases=['v','vol'])
-    async def volume(self, ctx, volume: float):
-        """Changes the player's volume"""
 
+    #---------------------------------------------------------------------------------
+
+    @commands.command(name='volume', description='Displays the current audio volume multiplier.', aliases=['vol'])
+    async def volume(self, ctx):
+        await ctx.send(f"**Audio volume: `{ctx.voice_client.source.volume}x`**")
+
+    #---------------------------------------------------------------------------------
+                
+    @commands.command(name='setvolume', description='Sets the audio volume multiplier [0, 2].', aliases=['setvol'])
+    @commands.has_permissions(manage_channels=True)
+    async def set_volume(self, ctx, volume: float):
         if ctx.voice_client is None:
             raise commands.CommandError("I am not connected to any voice channels.")
 
@@ -267,10 +303,10 @@ class Music(commands.Cog):
         else:
             raise commands.CommandError("No trooling.")
 
-    @commands.command()
-    async def leave(self, ctx):
-        """Stops and disconnects the bot from voice"""
+    #---------------------------------------------------------------------------------
 
+    @commands.command(name='leave', description='Stops and disconnects from the voice channel.', aliases=[])
+    async def leave(self, ctx):
         if ctx.voice_client is not None:
             if ctx.author.voice.channel == ctx.guild.me.voice.channel:
                 if ctx.voice_client.is_playing():
@@ -281,11 +317,9 @@ class Music(commands.Cog):
         else:
             raise commands.CommandError("I am not currently in any voice channels.")
 
-    @commands.command(
-        name='move',
-        help='Moves a member into a different voice channel.'
-    )
+    #---------------------------------------------------------------------------------
 
+    @commands.command(name='move', description='Moves a member into a different voice channel.', aliases=[])
     async def v_move(self, ctx, member: discord.Member, *, channel: discord.VoiceChannel):
         if ctx.author.permissions_in(ctx.author.voice.channel).move_members == True:
             if member.voice is not None:
