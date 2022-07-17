@@ -294,6 +294,7 @@ class Misc(commands.Cog):
 
     async def say_command(self, ctx, *, message: str):
         await ctx.send(message)
+        await ctx.message.delete()
 
     # #---------------------------------------------------------------------------------
     #
@@ -317,7 +318,7 @@ class Misc(commands.Cog):
 
     async def trolliliyan(self, ctx):
         if ctx.invoked_subcommand is None:
-            raise commands.BadArgument("Invalid subcommand passed.")
+            raise commands.BadArgument("❗ Invalid subcommand passed.")
         pass
 
     @trolliliyan.command(
@@ -331,10 +332,8 @@ class Misc(commands.Cog):
             enabled = contents["trolliliyan"]["enabled"]
             contents["trolliliyan"]["enabled"] = not enabled
 
-            j = json.dump(contents)
-
         with open("data/data.json", "w") as file:
-            file.write(j)
+            json.dump(contents, file, indent=4)
 
     @trolliliyan.command(
         name='addinsult',
@@ -346,10 +345,8 @@ class Misc(commands.Cog):
             contents = json.load(file)
             contents["trolliliyan"]["insults"].append(f"{message}")
 
-            j = json.dumps(contents)
-
         with open("data/data.json", "w") as file:
-            file.write(j)
+            json.dump(contents, file, indent=4)
 
     @trolliliyan.command(
         name='removeinsult',
@@ -364,10 +361,8 @@ class Misc(commands.Cog):
             except:
                 ctx.send("No such insult.")
 
-            j = json.dumps(contents)
-
         with open("data/data.json", "w") as file:
-            file.write(j)
+            json.dump(contents, file, indent=4)
 
     @trolliliyan.command(
         name='list',

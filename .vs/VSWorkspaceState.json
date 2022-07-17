@@ -1,11 +1,9 @@
 {
   "ExpandedNodes": [
     "",
-    "\\testing",
-    "\\testing\\bot_mode",
-    "\\testing\\bot_mode\\cogs",
-    "\\testing\\bot_mode\\data"
+    "\\cogs",
+    "\\data"
   ],
-  "SelectedNode": "\\testing\\bot_mode\\cogs\\information.py",
+  "SelectedNode": "\\data\\guilds.json",
   "PreviewInSolutionExplorer": false
 }
