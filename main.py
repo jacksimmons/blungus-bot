@@ -98,4 +98,5 @@ async def on_message(message):
 
 #The bot-specific token used to log into Discord. A different application will have a different token,
 #and this token is not specific to this code but to the bot account itself (this can change).
-bot.run('NjIxNzQxNTc2OTAwNTc1Mjcz.XXpv9w.gwh8PFVfPSNgSFWeTJ86PW9ZqKQ', bot=True, reconnect=True)
+with open("data/token.txt", "r") as token_file:
+    bot.run(token_file.read(), bot=True, reconnect=True)
