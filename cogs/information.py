@@ -93,7 +93,7 @@ class Info(commands.Cog):
     @commands.command(
         name='guildinfo',
         description='Returns some basic info about this guild.',
-        aliases=['serverinfo','server','guild']
+        aliases=['serverinfo']
     )
 
     async def guildinfo_command(self, ctx):
