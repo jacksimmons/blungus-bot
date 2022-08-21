@@ -14,7 +14,30 @@ class Godmode(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        
+    #---------------------------------------------------------------------------------
+
+    @commands.command(
+        name="setguicontext",
+        description="Sets the context for the GUI.",
+        aliases=['ctx'])
+
+    async def set_gui_context(self, ctx):
+        with open("data/data.json", "r") as jsonfile:
+            data = json.load(jsonfile)
+            
+            if "guictx" not in data:
+                data["guictx"] = ""
+            if ctx.voice_client:
+                vc = ctx.voice_client.channel
+            else:
+                vc = 0
+            data["guictx"] = {"guild": ctx.guild.id,
+                             "channel": ctx.channel.id,
+                             "author": ctx.author.id,
+                             }
+
+        with open("data/data.json", "w") as jsonfile:
+            json.dump(data, jsonfile, indent=4)
 
     #---------------------------------------------------------------------------------
 

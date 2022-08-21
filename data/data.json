@@ -24,5 +24,10 @@
         ],
         "enabled": true,
         "slappers": []
+    },
+    "guictx": {
+        "guild": 575741411841015829,
+        "channel": 674655495579238411,
+        "voice": 0
     }
 }
