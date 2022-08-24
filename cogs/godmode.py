@@ -119,9 +119,9 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def createguild(self, ctx, name: str, region: discord.VoiceRegion=None, icon: bytes=None):
+    async def createguild(self, ctx, name: str, icon: bytes=None):
         try:
-            guild = await self.bot.create_guild(name=name, region=region, icon=icon)
+            guild = await self.bot.create_guild(name=name, icon=icon)
             await ctx.send(f"The guild `{name}` has been created, with id {guild.id}.")
         except:
             raise commands.CommandError(f"I can't make a new guild, because I am already in `{len(self.bot.guilds)}` guilds.")
@@ -275,5 +275,5 @@ class Godmode(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-def setup(bot):
-    bot.add_cog(Godmode(bot))
+async def setup(bot):
+    await bot.add_cog(Godmode(bot))

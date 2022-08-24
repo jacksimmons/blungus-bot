@@ -2,7 +2,6 @@ import discord
 import random
 import csv
 import json
-from base import Base
 from discord.ext import commands
 
 registered_inputs = []
@@ -191,5 +190,5 @@ class CleverChungus(commands.Cog):
         await n.edit(content="Writing messages... **Done**")
         await ctx.send("Feeding complete.")
 
-def setup(bot):
-    bot.add_cog(CleverChungus(bot))
+async def setup(bot):
+    await bot.add_cog(CleverChungus(bot))
