@@ -1151,6 +1151,6 @@ class Setup(commands.Cog):
             raise commands.CommandError(f'{ctx.author.mention}: The widget for this guild is disabled.')
 
 
-def setup(bot):
-    bot.add_cog(Admin(bot))
-    bot.add_cog(Setup(bot))
+async def setup(bot):
+    await bot.add_cog(Admin(bot))
+    await bot.add_cog(Setup(bot))
