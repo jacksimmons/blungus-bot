@@ -1,14 +1,17 @@
 import asyncio
 
 import discord
-import youtube_dl
+import yt_dlp
+import lyricsgenius
+
+import aiohttp
 import datetime
 import os
 
 from discord.ext import commands
 
 # Suppress noise about console usage from errors
-youtube_dl.utils.bug_reports_message = lambda: ''
+yt_dlp.utils.bug_reports_message = lambda: ''
 
 pbs = 1
 
@@ -26,7 +29,7 @@ ytdl_format_options = {
     'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
 }
 
-ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
 
 #---------------------------------------------------------------------------------
 
@@ -34,6 +37,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=1):
         super().__init__(source, volume)
         self.data = data # Has lots of information about the YouTube video being played.
+        self.uploader = data.get('uploader')
         self.title = data.get('title')
         self.url = data.get('url')
         
@@ -149,6 +153,7 @@ class Music(commands.Cog):
             players = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
             for player in players:
                 self.queue.append(player)
+            print(self.queue)
 
             self.prev = players[-1]
 
@@ -292,7 +297,7 @@ class Music(commands.Cog):
     #---------------------------------------------------------------------------------
                 
     @commands.command(name='setvolume', description='Sets the audio volume multiplier [0, 2].', aliases=['setvol'])
-    @commands.has_permissions(manage_channels=True)
+    @commands.has_permissions(deafen_members=True)
     async def set_volume(self, ctx, volume: float):
         if ctx.voice_client is None:
             raise commands.CommandError("I am not connected to any voice channels.")
@@ -305,6 +310,34 @@ class Music(commands.Cog):
 
         else:
             raise commands.CommandError("No trooling.")
+
+    #---------------------------------------------------------------------------------
+                
+    @commands.command(name='lyrics', description='Gets the lyrics of the current song.')
+    async def get_lyrics(self, ctx):
+        if ctx.voice_client.is_playing():
+            artist = self.queue[0].uploader
+            title = self.queue[0].title
+
+            if "(" in title.lower():
+                title = title[:title.find("(")]
+
+            print("Artist: " + artist)
+            print("Title: " + title)
+
+            cs = aiohttp.ClientSession()
+            res = await cs.get(f'https://api.lyrics.ovh/v1//{title}') # Artist is too unpredictable
+            data = await res.json()
+
+            await cs.close()
+            
+            print("Data: " + str(data))
+            if "lyrics" in data:
+                await ctx.send(data["lyrics"])
+            else:
+                await ctx.send("No lyrics were found.")
+        else:
+            await ctx.send("Not playing a song.")
 
     #---------------------------------------------------------------------------------
 
@@ -361,19 +394,19 @@ class Music(commands.Cog):
                 in_user_vc = ctx.guild.me.voice.channel == ctx.author.voice.channel
 
             if not in_user_vc:
-                if ctx.guild.me.permissions_in(ctx.author.voice.channel).connect == True: #...If I can join that channel...
-                    if ctx.guild.me.permissions_in(ctx.author.voice.channel).speak == True: #...If I can speak in that channel...
-                        if ctx.voice_client is None: #...If I am not in a vc, then join user's vc.
-                            await ctx.author.voice.channel.connect()
-                        else: #...If I am already in a vc, then switch to their vc (as I cannot already be in their vc)
-                            if ctx.guild.me.voice.channel != ctx.author.voice.channel: #... provided that I am not already in THEIR vc.
-                                if ctx.voice_client.is_playing(): #!!!
-                                    ctx.voice_client.stop()
-                                await ctx.voice_client.move_to(ctx.author.voice.channel)
-                    else:
+                if ctx.voice_client is None:
+                    try:
+                        await ctx.author.voice.channel.connect()
+                    except:
                         raise commands.CommandError(f"{ctx.author.name}, I am not permitted to play audio in that channel.")
-                else:
-                    raise commands.CommandError(f"{ctx.author.name}, I am not permitted to join that channel.")
+                else: #...If I am already in a vc, then switch to their vc (as I cannot already be in their vc)
+                    if ctx.guild.me.voice.channel != ctx.author.voice.channel: #... provided that I am not already in THEIR vc.
+                        if ctx.voice_client.is_playing(): #!!!
+                            ctx.voice_client.stop()
+                        try:
+                            await ctx.voice_client.move_to(ctx.author.voice.channel)
+                        except:
+                            raise commands.CommandError(f"{ctx.author.name}, I am not permitted to play audio in that channel.")
             else:
                 pass #When I am already in the user's channel.
         else:
@@ -381,5 +414,5 @@ class Music(commands.Cog):
 
         self.source_channel = ctx.channel
 
-def setup(bot):
-    bot.add_cog(Music(bot))
+async def setup(bot):
+    await bot.add_cog(Music(bot))
