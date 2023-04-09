@@ -24,7 +24,7 @@ def get_message_content(msg):
             content += " " + atm.url
     return content
 
-class CleverChungus(commands.Cog):
+class Sentience(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -191,4 +191,4 @@ class CleverChungus(commands.Cog):
         await ctx.send("Feeding complete.")
 
 async def setup(bot):
-    await bot.add_cog(CleverChungus(bot))
+    await bot.add_cog(Sentience(bot))

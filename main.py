@@ -12,19 +12,21 @@ start = d.timestamp(d.now())
 # Define cogs. For a cog to be used it must be here.
 cogs = [
     'cogs.miscellaneous',
-    'cogs.music',
+    'cogs.server',
+    'cogs.info',
+    'cogs.admin',
     'cogs.godmode',
-    'cogs.administrator',
-    'cogs.information',
-    'cogs.error_handler',
-    'cogs.sentience']
+    'cogs.music',
+    'cogs.sentience',
+    'cogs.error_handler'
+    'cogs.sentience'
+    ]
 
 # The intents of the bot - what it intends to do.
 intents = discord.Intents.all()
 
 # All valid prefixes which can be used to call commands.
 prefixes = ["."]
-
 
 def get_prefix(bot: commands.Bot, message: str):
     return commands.when_mentioned_or(*prefixes)(bot, message) #Allow users to mention the bot instead of using a prefix when using a command.
