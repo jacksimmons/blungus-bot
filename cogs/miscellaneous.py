@@ -71,34 +71,6 @@ class Misc(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.guild_only()
-    @commands.command(
-        name='tag',
-        help='Displays one of the guild\'s tags. See the tags command for more info.',
-    )
-
-    async def _tag(self, ctx, *, name):
-        with open('data/guilds.json', 'r') as file:
-            #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
-            #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
-            #         [3] https://stackabuse.com/reading-and-writing-json-to-a-file-in-python/
-            data = json.load(file)
-            id = ctx.guild.id
-
-            file.seek(0) # Reset file position to the beginning
-
-            if str(id) not in data:
-                data[str(id)] = {}
-                raise commands.CommandError(ctx.author.name + ": No tags have been created yet. Use the `tags` command group to add one.")
-            else:
-                if 'tags' not in data[str(id)]:
-                    raise commands.CommandError(ctx.author.name + ": No tags have been created yet. Use the `tags` command group to add one.")
-                else:
-                    if name in data[str(id)]['tags']:
-                        await ctx.send(data[str(id)]['tags'][name])
-
-    #---------------------------------------------------------------------------------
-
     @commands.group(
         name='math',
         description=f'''Solves math problems.
