@@ -1,2 +1,3 @@
 data/bot_token.txt
-data/genius_token.txt
+.vs
+__pycache__

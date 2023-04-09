@@ -1,46 +1,55 @@
-﻿from datetime import datetime as d
-
-start = d.timestamp(d.now())
-
-import asyncio
+﻿import asyncio
 import discord
-import discord.ext.commands
 import random
 import json
 
-#Import 'commands' which allows the creation of commands that are 'invoked' by a certain keyword
-#e.g. 'help', which displays the default help command. This keyword must have the 'prefix' before it
-#for example if the prefix is '.', then the command would be activated by sending '.help' in a Discord
-#channel that the bot has access6 to and can send messages to.
+from datetime import datetime as d
 from discord.ext import commands
 
-cogs = ['cogs.miscellaneous','cogs.music','cogs.godmode','cogs.administrator','cogs.information','cogs.error_handler','cogs.sentience']
+# Set the starting timestamp.
+start = d.timestamp(d.now())
+
+# Define cogs. For a cog to be used it must be here.
+cogs = [
+    'cogs.miscellaneous',
+    'cogs.music',
+    'cogs.godmode',
+    'cogs.administrator',
+    'cogs.information',
+    'cogs.error_handler',
+    'cogs.sentience']
+
+# The intents of the bot - what it intends to do.
 intents = discord.Intents.all()
 
+# All valid prefixes which can be used to call commands.
 prefixes = ["."]
-def get_prefix(bot, message):
+
+
+def get_prefix(bot: commands.Bot, message: str):
     return commands.when_mentioned_or(*prefixes)(bot, message) #Allow users to mention the bot instead of using a prefix when using a command.
     #Replace with 'return prefixes' to prevent mentions instead of prefix.
 
-# Create a new bot, set the prefix, set the description, set the Owner ID and determine whether the bot is case-sensitive or not.
+# Create a new bot with the following parameters.
 bot = commands.Bot(
-    command_prefix=get_prefix, # Set the command prefix equal to the prefix defined earlier
-    description='Description', # Set the description to describe what the bot does
-    owner_id=354995879565852672, # Set the Owner ID so the bot knows who the owner is
-    case_insensitive=True, # The bot is not case-sensitive
+    command_prefix=get_prefix,
+    description='Description',
+    owner_id=354995879565852672,
+    case_insensitive=True,
     intents=intents
 )
 
+# Load the cogs.
 async def load_extensions():
     for cog in cogs:
         await bot.load_extension(cog)
 
+# Start the bot (load extensions, then start the bot)
 async def main():
     async with bot:
         await load_extensions()
         with open("data/bot_token.txt", "r") as token_file:
             await bot.start(token_file.read(), reconnect=True)
-
 
 @bot.event
 async def on_ready():
