@@ -12,6 +12,7 @@ start = d.timestamp(d.now())
 # Define cogs. For a cog to be used it must be here.
 cogs = [
     'cogs.miscellaneous',
+    "cogs.math",
     'cogs.server',
     'cogs.info',
     'cogs.admin',

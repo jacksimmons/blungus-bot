@@ -94,6 +94,7 @@ class CommandErrorHandler(commands.Cog):
             elif isinstance(error, commands.NotOwner):
                 return await ctx.send(f"❗ {ctx.author.mention}, you are not allowed to use this command.")
 
+            # YTDL Exceptions
             elif isinstance(error, yt_dlp.utils.DownloadError):
                 return await ctx.send("No video results.")
 
