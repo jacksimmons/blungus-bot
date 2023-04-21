@@ -2,18 +2,22 @@ import asyncio
 
 import discord
 import yt_dlp
-import lyricsgenius
 
 import aiohttp
 import datetime
 import os
 
 from discord.ext import commands
+from discord.ext.commands import MemberConverter
+from discord.ext.commands import VoiceChannelConverter
 
 # Suppress noise about console usage from errors
-yt_dlp.utils.bug_reports_message = lambda: ''
+#yt_dlp.utils.bug_reports_message = lambda: ''
+pbs: float = 1
+ffmpeg_path: str = os.getcwd() + "/ffmpeg/bin/ffmpeg.exe"
 
-pbs = 1
+m_converter: MemberConverter = MemberConverter()
+vc_converter: VoiceChannelConverter = VoiceChannelConverter()
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
@@ -44,13 +48,16 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def from_url_extract(cls, data, loop=None, stream=False, ffmpeg_options={}):
         filename = data['url'] if stream else ytdl.prepare_filename(data)
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+        return cls(
+            discord.FFmpegPCMAudio(source=filename,
+            **ffmpeg_options), data=data)
 
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=False):
         global pbs
         ffmpeg_options = {
             'options': f'-vn -filter:a "atempo={pbs}"',
+            "executable": ffmpeg_path,
             'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
         }
 
@@ -78,7 +85,7 @@ class Music(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
+    async def on_voice_state_update(self, member: discord.Member, before, after):
         guild = member.guild
         if guild.voice_client is not None:
             if guild.voice_client.channel is not None:
@@ -356,7 +363,9 @@ class Music(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.command(name='move', description='Moves a member into a different voice channel.', aliases=[])
-    async def v_move(self, ctx, member: discord.Member, *, channel: discord.VoiceChannel):
+    async def v_move(self, ctx, target, *, vc):
+        member: discord.Member = await m_converter.convert(target)
+        channel: discord.VoiceChannel = await vc_converter.convert(vc)
         if ctx.author.permissions_in(ctx.author.voice.channel).move_members == True:
             if member.voice is not None:
                 await member.move_to(channel)
@@ -371,7 +380,8 @@ class Music(commands.Cog):
         aliases=['summon']
     )
 
-    async def _pull(self, ctx, member: discord.Member):
+    async def _pull(self, ctx, target):
+        member: discord.Member = await m_converter.convert(ctx, target)
         if ctx.author.voice is not None:
             if ctx.author.permissions_in(ctx.author.voice.channel).move_members == True:
                 if ctx.guild.me.permissions_in(ctx.author.voice.channel).move_members == True:
