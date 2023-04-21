@@ -3,14 +3,32 @@ import os
 import discord
 
 from discord.ext import commands
+from discord.ext.commands import UserConverter
+from discord.ext.commands import MemberConverter
+from discord.ext.commands import TextChannelConverter
+from discord.ext.commands import VoiceChannelConverter
+from discord.ext.commands import CategoryChannelConverter
+from discord.ext.commands import RoleConverter
+from discord.ext.commands import EmojiConverter
+from discord.ext.commands import ColourConverter
 
 class Base:
-    #def __init__(self, bot):
-    #   self.data = None
+    dotw = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] #Days of the week
+    moty = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] #Months of the year
+
+    # Converters
+    u_converter: UserConverter = UserConverter()
+    m_converter: MemberConverter = MemberConverter()
+    tc_converter: TextChannelConverter = TextChannelConverter()
+    vc_converter: VoiceChannelConverter = VoiceChannelConverter()
+    cc_converter: CategoryChannelConverter = CategoryChannelConverter()
+    r_converter: RoleConverter = RoleConverter()
+    e_converter: EmojiConverter = EmojiConverter()
+    c_converter: ColourConverter = ColourConverter()
 
     #Method used to convert a large list into a neat string with the given constraints, converting
     #each member of the list from data to data.name for the purpose of the discord bot.
-    async def convert_long_list(list, max_individual_length, max_total_length, end_data=None):
+    def convert_long_list(list, max_individual_length, max_total_length, end_data=None):
 
     #'end_data' is the piece of data which is skipped to when the string becomes greater than
     #or equal to max_total_length and the rest of the list is ignored.
@@ -25,7 +43,7 @@ class Base:
 
         for x in range(0, len(list)):
             if len(output) < max_total_length:
-                data = list[len(list)-(x+1)].name
+                data = list[len(list)-(x+1)]
                 if output == '':
                     output = str(data)[:max_individual_length]
                 else:

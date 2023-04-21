@@ -2,14 +2,13 @@ import discord
 import json
 
 from discord.ext import commands
+from discord.ext.commands import UserConverter
+from discord.ext.commands import MemberConverter
 
 from base import Base
 
 #https://stackoverflow.com/questions/9847213/how-do-i-get-the-day-of-week-given-a-date-in-python
 #Get the day of the week from a date
-
-dotw = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] #Days of the week in string format
-moty = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] #Months of the year in string format
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -25,10 +24,10 @@ class Admin(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(manage_nicknames=True)
-    async def _rename(self, ctx, member:discord.Member, *, nickname=None):
+    async def _rename(self, ctx, target, *, nickname: str=None):
         #This command will by default remove a member's nickname, however if the 'nickname'
         #perameter is provided, the member will be given that nickname.
-
+        member: discord.Member = await converter.convert(ctx, target)
         if member.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
             if member.id != ctx.guild.owner_id: #Nobody can rename the owner
                 await member.edit(nick=nickname)
@@ -47,14 +46,13 @@ class Admin(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(kick_members=True)
-    async def _kick(self, ctx, member:discord.Member, *, reason=None):
-
+    async def _kick(self, ctx, member_name, *, reason=None):
         ban_entries = await ctx.guild.bans()
 
         #This command will by default kick a member with no reason, however if the 'reason'
         #perameter is provided, then in the log for the member's kick this reason will be provided.
 
-        #member = await self.m_converter.convert(ctx, member) #Converts the 'member' perameter into a Member object
+        member: discord.Member = ctx.guild.get_member_named(member_name)
 
         if member.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
             if member.id != ctx.guild.owner_id: #Nobody can kick the owner, so this shouldn't be an option.
@@ -87,7 +85,8 @@ class Admin(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
-    async def _ban(self, ctx, member: discord.User, delete_message_days: int=1, *, reason=None):
+    async def _ban(self, ctx, target, delete_message_days: int=1, *, reason=None):
+        user: discord.User = u_converter.convert(ctx, target)
 
         ban_entries = await ctx.guild.bans()
 
@@ -98,16 +97,14 @@ class Admin(commands.Cog):
             delete_message_days = 7
             #await ctx.send("Deleting 7 days of messages (this is the maximum)")
 
-        if member not in [BanEntry.user for BanEntry in ban_entries]:
+        if user not in [BanEntry.user for BanEntry in ban_entries]:
             #https://wiki.python.org/moin/Generators
             #This checks whether the user/member is in the list of banned members. Since every BanEntry is a tuple within the
             #guild.bans list, we need to use a 'generator' to check whether the user is in [a list of users for every BanEntry
             #in the ban entries list].
 
-            if member in ctx.guild.members:
-                self.m = commands.MemberConverter
-                member = self.m.convert(ctx, member)
-                del self.m
+            if user in ctx.guild.members:
+                member = m_converter.convert(ctx, user)
                 #If the user is a member of the guild, we need to ensure the author is a higher rank than the victim
                 #to prevent abuse of the bot, however if the user is not a member of the guild, this is not an issue.
 
@@ -207,7 +204,7 @@ class Admin(commands.Cog):
 
 
         if successful_bans != []: #If bans have already been successful, the 'content' variable needs to be set (for output).
-            successful_ban_list = [discord.Member.name for discord.Member in successful_bans]
+            successful_ban_list = [member.name for member in successful_bans]
             content = f'`Passed: {len(successful_bans)}`\n`{str(successful_ban_list)}` will be banned.'
 
             if reason is not None: #Add the reason on to the end of the string if there is one
@@ -215,8 +212,8 @@ class Admin(commands.Cog):
 
             content += f'\nThe past `{delete_message_days} days` of messages for these members will be deleted.'
 
-            if str([discord.Member.id for discord.Member in successful_bans]) != []: #Generator to check if the User ID list is empty
-                content += f'\nUser IDs: `{str([discord.Member.id for discord.Member in successful_bans])}`'
+            if str([member.id for member in successful_bans]) != []: #Generator to check if the User ID list is empty
+                content += f'\nUser IDs: `{str([member.id for member in successful_bans])}`'
 
         else: #Otherwise, set the content to empty
             content = ''

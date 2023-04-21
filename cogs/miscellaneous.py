@@ -290,7 +290,7 @@ class Misc(commands.Cog):
 
     async def trolliliyan(self, ctx):
         if ctx.invoked_subcommand is None:
-            raise commands.BadArgument("❗ Invalid subcommand passed.")
+            raise commands.BadArgument("Invalid subcommand passed.")
         pass
 
     @trolliliyan.command(
@@ -299,6 +299,7 @@ class Misc(commands.Cog):
     )
 
     async def ti_toggle(self, ctx):
+        contents: dict = {}
         with open("data/data.json", "r") as file:
             contents = json.load(file)
             enabled = contents["trolliliyan"]["enabled"]
@@ -306,6 +307,7 @@ class Misc(commands.Cog):
 
         with open("data/data.json", "w") as file:
             json.dump(contents, file, indent=4)
+        await ctx.send("Iliyan trolling set to " + str(not enabled))
 
     @trolliliyan.command(
         name='addinsult',
@@ -313,25 +315,30 @@ class Misc(commands.Cog):
     )
 
     async def ti_addinsult(self, ctx, *, message:str):
+        contents: dict = {}
         with open("data/data.json", "r") as file:
             contents = json.load(file)
             contents["trolliliyan"]["insults"].append(f"{message}")
 
         with open("data/data.json", "w") as file:
             json.dump(contents, file, indent=4)
+        await ctx.send("Added " + message)
 
     @trolliliyan.command(
         name='removeinsult',
         description='Removes an insult from Iliyan trolling.'
     )
 
-    async def ti_removeinsult(self, ctx, *, message:str):
+    async def ti_removeinsult(self, ctx, *, number: int):
+        contents: dict = {}
         with open("data/data.json", "r") as file:
             contents = json.load(file)
             try:
-                contents["trolliliyan"]["insults"].remove(f"{message}")
+                insult = contents["trolliliyan"]["insults"][number - 1]
+                await ctx.send("No more " + insult + "...")
+                del contents["trolliliyan"]["insults"][number - 1]
             except:
-                ctx.send("No such insult.")
+                await ctx.send("Invalid insult index.")
 
         with open("data/data.json", "w") as file:
             json.dump(contents, file, indent=4)
@@ -342,6 +349,7 @@ class Misc(commands.Cog):
     )
 
     async def ti_list(self, ctx):
+        insults: dict = {}
         with open("data/data.json", "r") as file:
             insults = json.load(file)["trolliliyan"]["insults"]
 

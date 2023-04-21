@@ -1,6 +1,11 @@
 import discord
+import json
 
 from discord.ext import commands
+from discord.ext.commands import MemberConverter
+from discord.ext.commands import RoleConverter
+
+from base import Base
 
 class Server(commands.Cog):
     #A class which allows Members to create, modify or delete new Guild-related objects.
@@ -261,15 +266,17 @@ class Server(commands.Cog):
     @_role.command(name='create', help='Create a new Role.')
     @commands.has_permissions(manage_roles=True)
     async def _rolecreate(self, ctx, name=None, colour:discord.Colour=None, hoist:bool=False, mentionable:bool=False, *, reason=None):
-        await ctx.guild.create_role(name=name, colour=colour, hoist=hoist, mentionable=mentionable, reason=reason)
+        role: discord.Role = await ctx.guild.create_role(name=name, colour=colour, hoist=hoist, mentionable=mentionable, reason=reason)
         if len(name) < 100:
             await ctx.send(f'{role.mention} has been created!')
         else:
-            await ctx.send('Role has been created!')
+            await ctx.send('Role (name >100 characters) has been created!')
 
     @_role.command(name='info', help='Display some information about an existing Role.', aliases=['i'])
     @commands.has_permissions(manage_roles=True)
-    async def _roleinfo(self, ctx, *, role:discord.Role):
+    async def _roleinfo(self, ctx, *, the_role):
+        role: discord.Role = await Base.r_converter.convert(the_role)
+
         perms = None
 
         embed = discord.Embed(colour=role.colour) #Create an embed
@@ -301,7 +308,7 @@ class Server(commands.Cog):
 
         embed.add_field(name='ID', value=role.id)
         embed.add_field(name='Members', value=str(len(role.members)))
-        embed.add_field(name='Created at', value=f'{dotw[role.created_at.weekday()-1]}, {role.created_at.day} {moty[role.created_at.month-1]} {role.created_at.year}')
+        embed.add_field(name='Created at', value=f'{Base.dotw[role.created_at.weekday()-1]}, {role.created_at.day} {Base.moty[role.created_at.month-1]} {role.created_at.year}')
 
         embed.add_field(name='Hoisted', value=role.hoist)
         embed.add_field(name='Mentionable', value=role.mentionable)
@@ -355,8 +362,8 @@ class Server(commands.Cog):
     )
 
     @commands.has_permissions(manage_roles=True)
-    async def _rolemove(self, ctx, role:discord.Role, movement, *, reason=None):
-
+    async def _rolemove(self, ctx, target:discord.Role, movement, *, reason=None):
+        role: discord.Role = await Base.r_converter(ctx, target)
         add = False
         subtract = False
 
@@ -395,7 +402,8 @@ class Server(commands.Cog):
 
     @_role.command(name='rename', help='Rename an existing Role.', aliases=['r'])
     @commands.has_permissions(manage_roles=True)
-    async def _rolerename(self, ctx, role:discord.Role, new_name, *, reason=None):
+    async def _rolerename(self, ctx, target, new_name, *, reason=None):
+        role: discord.Role = await Base.r_converter(ctx, target)
         await role.edit(name=new_name)
         if len(new_name) < 100:
             await ctx.send(f'✅ {new_name} has been renamed.')
@@ -404,7 +412,9 @@ class Server(commands.Cog):
 
     @_role.command(name='edit', help='Edit an existing Role.', aliases=['e'])
     @commands.has_permissions(manage_roles=True)
-    async def _roleedit(self, ctx, role:discord.Role, colour:discord.Colour=discord.Colour.default(), hoist:bool=False, mentionable:bool=False, position:int=None, *, reason=None):
+    async def _roleedit(self, ctx, target, colour=discord.Colour.default(), hoist:bool=False, mentionable:bool=False, position:int=None, *, reason=None):
+        role: discord.Role = await Base.r_converter(ctx, target)
+        colour: discord.Colour = Base.c_converter(ctx, colour)
         await role.edit(colour=colour, hoist=hoist, mentionable=mentionable, position=position, reason=reason)
         if len(role.name) < 100:
             await ctx.send(f'✅ {role.name} has been updated.')
@@ -413,7 +423,8 @@ class Server(commands.Cog):
 
     @_role.command(name='delete', help='Delete an existing Role.', aliases=['remove','del'])
     @commands.has_permissions(manage_roles=True)
-    async def _roledel(self, ctx, role:discord.Role, *, reason=None):
+    async def _roledel(self, ctx, target, *, reason=None):
+        role: discord.Role = await Base.r_converter(ctx, target)
         await role.delete(reason=reason)
         await ctx.send('✅ Role has been deleted.')
 
@@ -474,13 +485,13 @@ class Server(commands.Cog):
         embed.add_field(name='News Channel', value=target.is_news())
         embed.add_field(name='NSFW Channel', value=target.is_nsfw())
 
-        embed.add_field(name='Created at', value=f'{dotw[target.created_at.weekday()-1]}, {target.created_at.day} {moty[target.created_at.month-1]} {target.created_at.year}')
+        embed.add_field(name='Created at', value=f'{Base.dotw[target.created_at.weekday()-1]}, {target.created_at.day} {Base.moty[target.created_at.month-1]} {target.created_at.year}')
         embed.add_field(name='Slowmode delay', value=target.slowmode_delay)
         embed.add_field(name='Position', value=target.position)
 
         #embed.add_field(name='Permissions synced', value=target.permissions_synced)
 
-        changed_roles = await Base.convert_long_list(target.changed_roles, 50, 900)
+        changed_roles = Base.convert_long_list(target.changed_roles, 50, 900)
         #Make the max total length slightly below the maximum embed value length which is 1024.
 
         if changed_roles == '':
@@ -503,7 +514,7 @@ class Server(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def _textinvites(self, ctx, *, channel:discord.TextChannel):
 
-        invites = await Base.convert_long_list(channel.invites(), 100, 1000)
+        invites = Base.convert_long_list(channel.invites(), 100, 1000)
 
         embed = discord.Embed()
         embed.set_author(name=channel.mention, icon_url=ctx.guild.icon_url)
@@ -599,12 +610,12 @@ class Server(commands.Cog):
 
         embed.add_field(name='Bitrate', value=target.bitrate)
         embed.add_field(name='User Limit', value=target.user_limit)
-        embed.add_field(name='Created at', value=f'{dotw[target.created_at.weekday()-1]}, {target.created_at.day} {moty[target.created_at.month-1]} {target.created_at.year}')
+        embed.add_field(name='Created at', value=f'{Base.dotw[target.created_at.weekday()-1]}, {target.created_at.day} {Base.moty[target.created_at.month-1]} {target.created_at.year}')
 
         embed.add_field(name='Position', value=target.position)
         #embed.add_field(name='Permissions synced', value=target.permissions_synced)
 
-        changed_roles = await Base.convert_long_list(target.changed_roles, 50, 900)
+        changed_roles = Base.convert_long_list(target.changed_roles, 50, 900)
         #Make the max total length slightly below the maximum embed value length which is 1024.
 
         embed.add_field(name='Changed roles', value=changed_roles, inline=False)
@@ -615,7 +626,7 @@ class Server(commands.Cog):
     @commands.has_permissions(manage_guild=True)
     async def _voiceinvites(self, ctx, channel:discord.VoiceChannel):
 
-        invites = await Base.convert_long_list(channel.invites(), 100, 1000)
+        invites = Base.convert_long_list(channel.invites(), 100, 1000)
 
         embed = discord.Embed()
         embed.set_author(name=channel.mention, icon_url=ctx.guild.icon_url)
@@ -671,11 +682,11 @@ class Server(commands.Cog):
 
         embed.add_field(name='ID', value=target.id)
         embed.add_field(name='NSFW Category', value=target.is_nsfw())
-        embed.add_field(name='Created at', value=f'{dotw[target.created_at.weekday()-1]}, {target.created_at.day} {moty[target.created_at.month-1]} {target.created_at.year}')
+        embed.add_field(name='Created at', value=f'{Base.dotw[target.created_at.weekday()-1]}, {target.created_at.day} {Base.moty[target.created_at.month-1]} {target.created_at.year}')
 
         embed.add_field(name='Position', value=target.position)
 
-        changed_roles = await Base.convert_long_list(target.changed_roles, 50, 900)
+        changed_roles = Base.convert_long_list(target.changed_roles, 50, 900)
         #Make the max total length slightly below the maximum embed value length which is 1024.
 
         embed.add_field(name='Changed roles', value=changed_roles, inline=False)
@@ -782,7 +793,7 @@ class Server(commands.Cog):
         embed.add_field(name='Channel', value=invite.channel.mention)
         embed.add_field(name='Inviter', value=invite.inviter.mention)
 
-        #embed.add_field(name='Created at', value=f'{dotw[invite.created_at.weekday()-1]}, {invite.created_at.day} {moty[invite.created_at.month-1]} {invite.created_at.year}')
+        #embed.add_field(name='Created at', value=f'{Base.dotw[invite.created_at.weekday()-1]}, {invite.created_at.day} {Base.moty[invite.created_at.month-1]} {invite.created_at.year}')
 
         embed.add_field(name='Uses', value=str(invite.uses))
         embed.add_field(name='Maximum Uses', value=str(invite.max_uses))
@@ -818,7 +829,7 @@ class Server(commands.Cog):
             embed = discord.Embed() #Create an Embed
             embed.set_author(name='Widget: Online Members')
 
-            members = await Base.convert_long_list(widget.members, 40, 1000)
+            members = Base.convert_long_list(widget.members, 40, 1000)
 
             if members == '':
                 members = None

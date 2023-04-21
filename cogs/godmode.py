@@ -6,6 +6,8 @@ from discord.ext import commands
 
 import json
 
+from base import Base
+
 min_messages = 1
 max_messages = 10
 
@@ -134,14 +136,14 @@ class Godmode(commands.Cog):
 
     @commands.command(
         name='gimmerole',
-        description='Gives a user a role role in a guild the bot owns.',
+        description='Gives a user a role in a guild the bot owns.',
         aliases=[]
     )
 
     @commands.is_owner()
-    async def gimme_role(self, ctx, member_id: int, role_id: int):
-        member = ctx.guild.get_member(member_id)
-        role = ctx.guild.get_role(role_id)
+    async def gimme_role(self, ctx, member, role):
+        member = await Base.m_converter.convert(ctx, member)
+        role = await Base.r_converter.convert(ctx, role)
         await member.add_roles(role)
         await ctx.send(f"Added role to {member.mention}: {role.mention}.")
 
@@ -154,10 +156,11 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def create_admin_role(self, ctx, member_id: int, role_id: int):
+    async def create_admin_role(self, ctx, role):
+        role = await Base.r_converter(ctx, role)
         guild = ctx.guild
         admin_role = await guild.create_role(name="Admin", permissions=discord.Permissions.all(), reason="Requested by bot owner.")
-        await ctx.send(f"Role ID: `{admin_role}`")
+        await ctx.send(f"Created role {admin_role.mention}")
 
     #---------------------------------------------------------------------------------
 
@@ -226,7 +229,6 @@ class Godmode(commands.Cog):
     @commands.is_owner()
     async def guild_count(self, ctx):
         await ctx.send(f"I am in `{len(self.bot.guilds)}`.")
-
 
     #---------------------------------------------------------------------------------
 

@@ -18,8 +18,7 @@ cogs = [
     'cogs.godmode',
     'cogs.music',
     'cogs.sentience',
-    'cogs.error_handler'
-    'cogs.sentience'
+    'cogs.error_handler',
     ]
 
 # The intents of the bot - what it intends to do.
