@@ -202,7 +202,6 @@ class Music(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.command(name='previous', description='Replays the audio that was just played.', aliases=['|<', 'prev'])
-    @commands.has_permissions(manage_channels=True)
     async def prev(self, ctx):
         if ctx.voice_client is not None:
             if ctx.author.voice.channel == ctx.guild.me.voice.channel:

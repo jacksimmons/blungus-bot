@@ -138,9 +138,6 @@ class Info(commands.Cog):
         aliases=['agi','asi']
     )
 
-    @commands.has_permissions(administrator=True)
-    #We don't want normal users to see this information, so this check() ensures only users with the 'administrator'
-    #permission can use this command.
     async def advanced_guild_info(self, ctx):
 
         #This variable (ctx.guild) is used a lot, so this helps simplify the code below
@@ -176,7 +173,7 @@ class Info(commands.Cog):
 
 #Create an embedded message with guild information in it with the colour theme R:0, G:255, B:0:
         embed = discord.Embed(color=0x00ff00) #R:0, G:255, B:0
-        embed.set_author(name=ctx.author.name, icon_url=g.icon.url) #The name of the Guild and the Guild's icon
+        embed.set_author(name=ctx.author.name, icon_url=g.icon.url) #The author and the Guild's icon
         embed.set_footer(text=f"Guild ID: {g.id} | Guild Owner: {g.owner} | Guild Owner ID: {g.owner_id} | Shard ID: {g.shard_id} | Chunked: {g.chunked}", icon_url=f"{ctx.author.avatar}")
 
 #Syntax: Embed.add_field(name[str], value[str], inline[bool])
