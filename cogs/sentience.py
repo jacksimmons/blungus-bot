@@ -5,6 +5,7 @@ import json
 from discord.ext import commands
 
 registered_inputs = []
+banned_chars = ["", "\n"]
 
 def find_indices(list, item):
     indices = []
@@ -33,12 +34,9 @@ class Sentience(commands.Cog):
     async def on_message(self, message):
         if isinstance(message.channel, discord.TextChannel) and message.author.id != self.bot.user.id:
             guild_id = message.guild.id
-
             with open('data/guilds.json', 'r') as f: #Determines speaking_zone value; this is set to 0 if a channel was not found in 'guilds.json'
                 data = json.load(f)
-
                 speaking_zone = None
-
                 if str(guild_id) in data:
                     if 'channels' in data[str(guild_id)]:
                         if 'chatbot' in data[str(guild_id)]['channels']:
@@ -50,23 +48,23 @@ class Sentience(commands.Cog):
 
             if message.channel.id == speaking_zone:
                 messages = []
-                with open('data/guilds.json', 'r') as f:
-                    guilds = json.load(f)
-                    if str(message.guild.id) not in guilds:
-                        guilds[str(guild_id)] = {}
-                    if "sentience" not in guilds[str(guild_id)]:
-                        guilds[str(guild_id)]["sentience"] = []
-                    messages = guilds[str(guild_id)]["sentience"]
+                responses = []
+                with open("data/messages.csv", "r") as f:
+                    reader = csv.reader(f, delimiter=",", quotechar="|")
+                    for row in reader:
+                        if row != []:
+                            print(row)
+                            messages.append(row[0])
+                            responses.append(row[1])
 
                 send_response = False
                 content = message.content
-                print(messages)
-                print(content)
+
                 if content in messages: # Search for the message in messages
                     send_response = True
                     if messages.count(content) == 1:
-                        if not (messages.index(content) == len(messages) - 1):
-                            response = messages[messages.index(content) + 1]
+                        if not (messages.index(content) == len(responses) - 1):
+                            response = responses[messages.index(content)]
                         else:
                             # Reached the end of the read conversation
                             send_response = False
@@ -74,25 +72,21 @@ class Sentience(commands.Cog):
                         indices = find_indices(messages, content)
                         index = random.choice(indices)
                         if not (index == len(messages) - 1):
-                            response = messages[index + 1]
+                            response = responses[index]
                         else:
                             # The random choice was the final message! So just pick another.
                             indices.pop(index)
-                            response = messages[indices[0] + 1]
+                            response = responses[indices[0]]
 
                 else: #If the message is not recognised
-                    with open("data/guilds.json", "w") as f:
-                        # We know "sentience" was previously added to the guild data.
-                        sentience = guilds[str(guild_id)]["sentience"]
-                        sentience.append(content)
-                        guilds[str(guild_id)]["sentience"] = sentience
-                        json.dump(guilds, f, indent=4)
+                    with open("data/messages.csv") as f:
+                        f.write(content)
                     send_response = False # We need to wait for a response to learn what a valid response to that message is.
 
                 if response is not None:
                     if send_response == True:
-                        #response.replace('@everyone', '@ everyone')
-                        #response.replace('@here', '@ here')
+                        response.replace('@everyone', '@ everyone')
+                        response.replace('@here', '@ here')
                         await message.channel.send(response)
 
     @commands.guild_only()
@@ -113,6 +107,7 @@ class Sentience(commands.Cog):
                 data[str(guild_id)]['channels']['chatbot'] = channel_id
 
             else:
+                data[str(guild_id)] = {}
                 data[str(guild_id)]['channels'] = {}
                 data[str(guild_id)]['channels']['chatbot'] = channel_id
 
@@ -147,47 +142,44 @@ class Sentience(commands.Cog):
     @commands.guild_only()
     @commands.command(name='feed', help='Feeds the bot all of the inputs and responses from a specific channel.')
     @commands.is_owner()
-    async def _feed(self, ctx, channel_id:int=None):
+    async def _feed(self, ctx, channel_id:int, limit:int=None):
         target = self.bot.get_channel(channel_id)
         await ctx.send(f"Preparing feast from {target.mention}.")
 
-        messages = await target.history(limit=None).flatten()
-        messages.reverse() # So that the most recent message is at the end of the list
+        messages = [message async for message in target.history(limit=limit)]
+        messages.reverse()
         read_messages = []
 
-        ids = [Message.id for Message in messages]
-
-        #The following code is based on the fact that the message ID with index '0' is the most recent message that was sent
-
         await ctx.send(f"Feast has been prepared. Feeding from channel {target.mention}.")
+        reading_msg = await ctx.send("Reading messages from chat...")
 
-        m = await ctx.send("Reading messages from chat...")
+        for i in range(0, len(messages)):
+            content = messages[i].content
+            if content not in ["", "\n"]:
+                read_messages.append(content)
 
-        for x in range(0, len(ids)):
-            print("Reading messages: " + str(x) + f'/{len(ids)}')
+        await reading_msg.edit(content="Reading messages from chat... **Done**")
+        writing_msg = await ctx.send("Writing messages to file...")
 
-            msg = await target.fetch_message(ids[x])
-            content = get_message_content(msg)
+        with open("data/messages.csv", "w") as f:
+            writer = csv.writer(f, delimiter=',', quotechar="|")
+            for i in range(0, len(read_messages) - 1):
+                try:
+                    writer.writerow([read_messages[i], read_messages[i+1]])
+                except:
+                    pass
+        
+        lines = []
+        with open("data/messages.csv", "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                if line in banned_chars:
+                    lines.remove(line)
+        
+        with open("data/messages.csv", "w") as f:
+            f.write(lines)
 
-        await m.edit(content="Reading messages from chat... **Done**")
-
-        n = await ctx.send("Writing messages to file...")
-
-        with open('data/guilds.json', 'r') as f:
-            guilds = json.load(f)
-            if str(ctx.guild.id) not in guilds:
-                guilds[str(ctx.guild.id)] = {}
-            if "sentience" not in guilds[str(ctx.guild.id)]:
-                guilds[str(ctx.guild.id)]["sentience"] = []
-            prev_messages = guilds[str(ctx.guild.id)]["sentience"]
-
-        with open("data/guilds.json", "w") as f:
-            prev_messages.extend(read_messages)
-            guilds[str(ctx.guild.id)]["sentience"] = prev_messages
-            json.dump(guilds, f, indent=4)
-        print("Done")
-
-        await n.edit(content="Writing messages... **Done**")
+        await writing_msg.edit(content="Writing messages... **Done**")
         await ctx.send("Feeding complete.")
 
 async def setup(bot):

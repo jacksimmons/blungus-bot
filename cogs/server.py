@@ -843,5 +843,15 @@ class Server(commands.Cog):
         except discord.Forbidden:
             raise commands.CommandError(f'{ctx.author.mention}: The widget for this guild is disabled.')
 
+    @commands.command(name="vote", help="Makes a juicy vote.")
+    async def _vote(self, ctx, *, message):
+        embed = discord.Embed(color=0x0000ff)
+        embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar)
+        embed.set_footer(text="React to vote.")
+        embed.add_field(name="Vote", value=message)
+        message = await ctx.send(embed=embed)
+        await message.add_reaction('👍')
+        await message.add_reaction('👎')
+
 async def setup(bot):
     await bot.add_cog(Server(bot))

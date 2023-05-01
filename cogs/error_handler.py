@@ -45,62 +45,59 @@ class CommandErrorHandler(commands.Cog):
         error = getattr(error, 'original', error)
 
         # Anything in ignored will return and prevent anything happening.
-        try:
-            if isinstance(error, ignored):
-                print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
-                traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-                return
+        if isinstance(error, ignored):
+            print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
+            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+            return
 
-            #-----------------------------------------------------------------------------
-            # Default discord.py exceptions
+        #-----------------------------------------------------------------------------
+        # Default discord.py exceptions
 
-            elif isinstance(error, commands.CommandError):
-                return await ctx.send('❗' + str(error))
+        elif isinstance(error, commands.CommandError):
+            return await ctx.send('❗' + str(error))
 
-            elif isinstance(error, discord.Forbidden):
-                return await ctx.send(f'❗ {ctx.author.mention}, I am not permitted to do that.')
+        elif isinstance(error, discord.Forbidden):
+            return await ctx.send(f'❗ {ctx.author.mention}, I am not permitted to do that.')
 
-            elif isinstance(error, discord.HTTPException):
-                if error.text == 'Invalid Form Body\nIn nick: Must be 32 or fewer in length.':
-                    return await ctx.send(f'❗ {ctx.author.mention}, please enter a nickname between 0 and 32 characters inclusive.')
-                else:
-                    return await ctx.send(f'❗ {ctx.author.mention}, your request failed: `{error.text}`')
+        elif isinstance(error, discord.HTTPException):
+            if error.text == 'Invalid Form Body\nIn nick: Must be 32 or fewer in length.':
+                return await ctx.send(f'❗ {ctx.author.mention}, please enter a nickname between 0 and 32 characters inclusive.')
+            else:
+                return await ctx.send(f'❗ {ctx.author.mention}, your request failed: `{error.text}`')
 
-            elif isinstance(error, commands.DisabledCommand):
-                return await ctx.send('❗ This command is disabled.')
+        elif isinstance(error, commands.DisabledCommand):
+            return await ctx.send('❗ This command is disabled.')
 
-            elif isinstance(error, commands.NoPrivateMessage):
-                return await ctx.author.send(f'❗ {ctx.message.author.name}, `{ctx.command}` can not be used in Private Messages.')
+        elif isinstance(error, commands.NoPrivateMessage):
+            return await ctx.author.send(f'❗ {ctx.message.author.name}, `{ctx.command}` can not be used in Private Messages.')
 
-            # For this error example we check to see where it came from...
-            elif isinstance(error, commands.BadArgument):
-                if ctx.command.qualified_name == 'tag list':  # Check if the command being invoked is 'tag list'
-                    return await ctx.send('❗ I could not find that member. Please try again.')
-                else:
-                    return await ctx.send(f"❗ {ctx.author.mention}, `{ctx.command}` failed due to a bad argument: `{error.args[0]}`")
+        # For this error example we check to see where it came from...
+        elif isinstance(error, commands.BadArgument):
+            if ctx.command.qualified_name == 'tag list':  # Check if the command being invoked is 'tag list'
+                return await ctx.send('❗ I could not find that member. Please try again.')
+            else:
+                return await ctx.send(f"❗ {ctx.author.mention}, `{ctx.command}` failed due to a bad argument: `{error.args[0]}`")
 
-            elif isinstance(error, discord.InvalidArgument):
-                return await ctx.send(f'❗ {ctx.author.mention}, your request failed due to an invalid argument: `{str(error)}`.')
+        elif isinstance(error, discord.InvalidArgument):
+            return await ctx.send(f'❗ {ctx.author.mention}, your request failed due to an invalid argument: `{str(error)}`.')
 
-            elif isinstance(error, commands.MissingPermissions):
-                return await ctx.send(f"❗ {ctx.author.mention}, you need the following permissions to use this command: `{error.missing_perms}`")
+        elif isinstance(error, commands.MissingPermissions):
+            return await ctx.send(f"❗ {ctx.author.mention}, you need the following permissions to use this command: `{error.missing_perms}`")
 
-            elif isinstance(error, commands.MissingRequiredArgument):
-                return await ctx.send(f"❗ {ctx.author.mention}, your request is missing the `{error.param}` argument.")
+        elif isinstance(error, commands.MissingRequiredArgument):
+            return await ctx.send(f"❗ {ctx.author.mention}, your request is missing the `{error.param}` argument.")
 
-            elif isinstance(error, commands.ExpectedClosingQuoteError):
-                return await ctx.send(f"❗ {ctx.author.mention}, one of your arguments is missing a closing \".")
+        elif isinstance(error, commands.ExpectedClosingQuoteError):
+            return await ctx.send(f"❗ {ctx.author.mention}, one of your arguments is missing a closing \".")
 
-            elif isinstance(error, commands.NotOwner):
-                return await ctx.send(f"❗ {ctx.author.mention}, you are not allowed to use this command.")
+        elif isinstance(error, commands.NotOwner):
+            return await ctx.send(f"❗ {ctx.author.mention}, you are not allowed to use this command.")
 
-            # YTDL Exceptions
-            elif isinstance(error, yt_dlp.utils.DownloadError):
-                return await ctx.send("No video results.")
+        # YTDL Exceptions
+        elif isinstance(error, yt_dlp.utils.DownloadError):
+            return await ctx.send("No video results.")
 
-            #-----------------------------------------------------------------------------
-        except:
-            print("wtf???")
+        #-----------------------------------------------------------------------------
 
         # All other Errors not returned come here... And we can just print the default TraceBack.
 
