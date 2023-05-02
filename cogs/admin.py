@@ -14,15 +14,11 @@ class Admin(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='rename',
-        help='Removes or changes a user\'s nickname',
-        aliases=['nick']
-    )
-
+    @commands.hybrid_command(name="rename")
     @commands.guild_only()
     @commands.has_permissions(manage_nicknames=True)
     async def _rename(self, ctx: commands.Context, member: discord.Member, *, nickname: str=None):
+        """Removes or changes a user\'s nickname"""
         #This command will by default remove a member's nickname, however if the 'nickname'
         #perameter is provided, the member will be given that nickname.
         if member.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
@@ -35,15 +31,11 @@ class Admin(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='kick',
-        description='Kicks a user',
-        aliases=[]
-    )
-
+    @commands.hybrid_command(name="kick")
     @commands.guild_only()
     @commands.has_permissions(kick_members=True)
     async def _kick(self, ctx: commands.Context, member: discord.Member, *, reason=None):
+        """Kicks a user from the server. They can join back with an invite."""
         #This command will by default kick a member with no reason, however if the 'reason'
         #parameter is provided, then in the log for the member's kick this reason will be provided.
 
@@ -66,17 +58,11 @@ class Admin(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='ban',
-        description='Bans a user',
-        aliases=[]
-    )
-
+    @commands.hybrid_command(name="ban")
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     async def _ban(self, ctx: commands.Context, user: discord.User, delete_message_days: int=1, *, reason=None):
-        ban_entries = ctx.guild.bans()
-
+        """Bans a user. They cannot join back until you unban them."""
         content = ''
         success = False
 
@@ -132,14 +118,11 @@ class Admin(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='multiban',
-        help='Bans multiple users at once (use with caution)'
-    )
-
+    @commands.hybrid_command(name="multiban")
     @commands.guild_only()
     @commands.has_permissions(administrator=True) #We don't want members able to ban multiple people with just ban_members
     async def _mban(self, ctx: commands.Context, users: commands.Greedy[discord.User], delete_message_days=1, *, reason=None):
+        """Bans multiple users at once (use with caution)."""
         #This command uses commands.Greedy, which takes in arguments of a certain type until no more are given,
         #allowing multiple users to be passed into the command at once, so this command is able to ban multiple users at once.
         failed_bans = ''
@@ -232,14 +215,11 @@ class Admin(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='unban',
-        help='Unbans a banned user'
-    )
-
+    @commands.hybrid_command(name="unban")
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     async def _unban(self, ctx: commands.Context, user: discord.User, *, reason=None):
+        """Unbans a user, allowing them to rejoin the server."""
         if user in [ban_entry.user async for ban_entry in ctx.guild.bans()]:
             await ctx.guild.unban(user=user, reason=reason)
             content = f'`{str(user)}` was unbanned.'
@@ -253,14 +233,11 @@ class Admin(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name="unbanall",
-        help="Unbans every banned user."
-    )
-
+    @commands.hybrid_command(name="unbanall")
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     async def _unban_all(self, ctx: commands.Context, *, reason=None):
+        """Unbans every banned user (use with caution)."""
         banned_users = [ban_entry.user async for ban_entry in ctx.guild.bans()]
 
         await ctx.send(f"Banned users: `{str([banned_user.name for banned_user in banned_users])}`")
@@ -292,25 +269,24 @@ class Admin(commands.Cog):
                 content += f'\nUser IDs: `{str([user.id for user in banned_users])}`'
             await ctx.send(content)
 
-    #@commands.command(
-    #    name='leave',
-    #    description='Makes the bot leave the server',
-    #    aliases=[]
-    #)
+    #---------------------------------------------------------------------------------
 
-    #@commands.has_permissions(administrator=True)
-    #async def leave_command(self, ctx):
-    #    await ctx.send("Are you sure you want me to leave? [y/n]")
-    #    await ctx.message.add_reaction(emoji='💬')
+    @commands.hybrid_command(name="bye")
+    @commands.has_permissions(administrator=True)
+    async def _bye(self, ctx):
+        """Makes the bot leave the server (:()"""
+        await ctx.send("Are you sure you want me to leave? [y/n]")
 
-    #    def check(msg):
-    #        return msg.author == ctx.author
+        def check(msg):
+            return msg.author == ctx.author
 
-    #    msg = await self.bot.wait_for('message', check=check)
-    #    await ctx.send("Bye mom!")
-    #    await ctx.guild.leave()
+        msg = await self.bot.wait_for('message', check=check)
+        if (msg.content.lower() in ["yes", "y"]):
+            await ctx.send("Bye mom!")
+            await ctx.guild.leave()
+        else:
+            await ctx.send("`Operation cancelled.`")
 
-    #@_ban.before_invoke()
 
 async def setup(bot):
     await bot.add_cog(Admin(bot))
