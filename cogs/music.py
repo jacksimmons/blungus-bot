@@ -355,7 +355,7 @@ class Music(commands.Cog):
     async def v_move(self, ctx: commands.Context, member: discord.Member, *, voice_channel: discord.VoiceChannel):
         if ctx.author.permissions_in(ctx.author.voice.channel).move_members == True:
             if member.voice is not None:
-                await member.move_to(channel)
+                await member.move_to()
             else:
                 raise commands.CommandError("This member is not currently connected to any voice channel.")
         else:
