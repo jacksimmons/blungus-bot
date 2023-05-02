@@ -135,9 +135,7 @@ class Info(commands.Cog):
         Note: it is recommended to use this in a private channel to prevent any unwanted information being seen by normal users.''',
         aliases=['agi','asi']
     )
-
     async def advanced_guild_info(self, ctx):
-
         #This variable (ctx.guild) is used a lot, so this helps simplify the code below
         g: discord.Guild = ctx.guild
 
