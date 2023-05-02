@@ -13,10 +13,16 @@ start = d.timestamp(d.now())
 
 # Define cogs. For a cog to be used it must be here.
 cogs = [
+    'cogs.admin',
+    'cogs.error_handler',
+    'cogs.fun',
     'cogs.godmode',
+    'cogs.info',
+    'cogs.math',
+    'cogs.miscellaneous',
     'cogs.music',
     'cogs.sentience',
-    'cogs.error_handler',
+    'cogs.server'
     ]
 
 # The intents of the bot - what it intends to do.

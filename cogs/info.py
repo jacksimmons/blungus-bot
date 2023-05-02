@@ -20,13 +20,11 @@ class Info(commands.Cog):
     # Member mention: <@id>
     # Role mention: <@&id>
     # Channel mention: <#id>
-    async def member_info(self, ctx: commands.Context, target):
+    async def member_info(self, ctx: commands.Context, member: discord.Member):
         roles = None
         perms = None
         user_flags = None
         additional_info = None
-
-        member: discord.Member = await Base.m_converter.convert(ctx: commands.Context, target)
 
         for x in range(0, len(member.roles)):
             if roles is None or len(roles) < 500:
