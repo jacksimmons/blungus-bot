@@ -1,6 +1,7 @@
 import discord
 import json
 
+from discord import app_commands
 from discord.ext import commands
 
 from base import Base
@@ -14,10 +15,14 @@ class Admin(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.hybrid_command(name="rename")
+    @commands.hybrid_command(name="nick")
+    @app_commands.describe(
+        member="The member to change the nickname of.",
+        nickname="The nickname to apply."
+    )
     @commands.guild_only()
     @commands.has_permissions(manage_nicknames=True)
-    async def _rename(self, ctx: commands.Context, member: discord.Member, *, nickname: str=None):
+    async def _set_nickname(self, ctx: commands.Context, member: discord.Member, *, nickname: str=None):
         """Removes or changes a user\'s nickname"""
         #This command will by default remove a member's nickname, however if the 'nickname'
         #perameter is provided, the member will be given that nickname.
@@ -32,6 +37,10 @@ class Admin(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.hybrid_command(name="kick")
+    @app_commands.describe(
+        member="The Member to kick.",
+        reason="The reason for this action, used in audit logs."
+    )
     @commands.guild_only()
     @commands.has_permissions(kick_members=True)
     async def _kick(self, ctx: commands.Context, member: discord.Member, *, reason=None):
@@ -59,6 +68,11 @@ class Admin(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.hybrid_command(name="ban")
+    @app_commands.describe(
+        user="The user to ban. Can be a Member or a User ID.",
+        delete_message_days="The number of days of chat history to erase from this user.",
+        reason="The reason for this action, used in audit logs."
+    )
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     async def _ban(self, ctx: commands.Context, user: discord.User, delete_message_days: int=1, *, reason=None):
@@ -119,6 +133,11 @@ class Admin(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.hybrid_command(name="multiban")
+    @app_commands.describe(
+        users="The users to ban. Each can be a Member or a User ID.",
+        delete_message_days="The number of days of chat history to delete from each user.",
+        reason="The reason for this action, used in audit logs."
+    )
     @commands.guild_only()
     @commands.has_permissions(administrator=True) #We don't want members able to ban multiple people with just ban_members
     async def _mban(self, ctx: commands.Context, users: commands.Greedy[discord.User], delete_message_days=1, *, reason=None):
@@ -216,6 +235,9 @@ class Admin(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.hybrid_command(name="unban")
+    @app_commands.describe(
+        user="The user to ban.",
+        reason="The reason for this action, used in audit logs.")
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     async def _unban(self, ctx: commands.Context, user: discord.User, *, reason=None):
@@ -234,6 +256,7 @@ class Admin(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.hybrid_command(name="unbanall")
+    @app_commands.describe(reason="The reason for this action, used in audit logs.")
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
     async def _unban_all(self, ctx: commands.Context, *, reason=None):
@@ -272,6 +295,7 @@ class Admin(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.hybrid_command(name="bye")
+    @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def _bye(self, ctx):
         """Makes the bot leave the server (:()"""

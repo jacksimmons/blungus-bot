@@ -15,6 +15,13 @@ embed_colour = 0xFFFF00
 # Suppress noise about console usage from errors
 #yt_dlp.utils.bug_reports_message = lambda: ''
 pbs: float = 1
+PBS_MIN: float = 0
+PBS_MAX: float = 10
+
+# No reason to change these - these are the actual limits of ffmpeg.
+VOL_MIN: float = 0
+VOL_MAX: float = 2
+
 ffmpeg_path: str = os.getcwd() + "/ffmpeg/bin/ffmpeg.exe"
 
 ytdl_format_options = {
@@ -143,7 +150,7 @@ class Music(commands.Cog):
     @commands.hybrid_command(name="queue")
     async def _queue(self, ctx: commands.Context,):
         """Displays the song queue."""
-        embed = discord.Embed(color=0xFF0000)
+        embed = discord.Embed(color=embed_colour)
 
         embed.set_author(name=f"Queue ({len(self.queue)})")
         for song in self.queue:
@@ -155,7 +162,7 @@ class Music(commands.Cog):
 
     @commands.hybrid_command(name="clear")
     @commands.has_permissions(manage_channels=True)
-    async def _clear_queue(self, ctx: commands.Context,):
+    async def _clear_queue(self, ctx: commands.Context):
         """Clears the song queue."""
         self.queue = []
         await ctx.send("Queue has been cleared")
@@ -167,7 +174,8 @@ class Music(commands.Cog):
         url_or_query="The url or search query to use."
     )
     async def _play(self, ctx: commands.Context, *, url_or_query: str):
-        """Plays YouTube audio from a URL using yt-dlp."""
+        """Plays YouTube audio from a URL or search query using yt-dlp."""
+        global pbs
         await ctx.defer()
 
         players = await YTDLSource.from_url(url_or_query, loop=self.bot.loop, stream=True)
@@ -175,7 +183,7 @@ class Music(commands.Cog):
             self.queue.append(player)
         self.prev = players[-1]
 
-        embed: discord.Embed = discord.Embed(colour=embed_colour)
+        embed: discord.Embed = discord.Embed(colour=embed_colour, description=f"{str(pbs)}x speed")
 
         embed.set_author(name="Playing music with yt-dlp")
 
@@ -190,36 +198,38 @@ class Music(commands.Cog):
                 sendStr += f' {len(self.queue)}'
             embed.add_field(name="Added to queue, " + send_str, value=f"{self.prev.data.get('uploader')} - {self.prev.title}")
 
-        print(self.prev.data)
         embed.set_footer(text=str(datetime.timedelta(seconds=player.data.get('duration'))))
 
         await ctx.send(embed=embed)
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='localplay', description='Plays local audio from my computer.', aliases=['lp'])
+    @commands.hybrid_command(name="localplay")
     @commands.is_owner()
-    async def localplay(self, ctx: commands.Context, *, path):
-        async with ctx.typing():
-            path = os.getcwd() + "\\" + path
-            print(path)
-            player = await YTDLSource.from_url(path, loop=self.bot.loop, stream=False)
-            self.queue.append(player)
+    async def _local_play(self, ctx: commands.Context, *, path):
+        """Plays a song from the local filesystem."""
+        await ctx.defer()
+        path = os.getcwd() + "\\" + path
+        print(path)
+        player = await YTDLSource.from_url(path, loop=self.bot.loop, stream=False)
+        self.queue.append(player)
 
-            self.prev = player
+        self.prev = player
 
-            if not ctx.voice_client.is_playing():
-                ctx.voice_client.play(path, after=lambda e: self.after_song(ctx, e))
-                sendStr = '>>> **Now playing locally: '
-            else:
-                sendStr = f'>>> **Added local file to queue, position {len(self.queue)}'
+        if not ctx.voice_client.is_playing():
+            ctx.voice_client.play(path, after=lambda e: self.after_song(ctx, e))
+            sendStr = '>>> **Now playing locally: '
+        else:
+            sendStr = f'>>> **Added local file to queue, position {len(self.queue)}'
 
-            await ctx.send(sendStr)
+        await ctx.send(sendStr)
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='previous', description='Replays the audio that was just played.', aliases=['|<', 'prev'])
-    async def prev(self, ctx):
+    @commands.hybrid_command(name="prev")
+    async def _prev(self, ctx):
+        """Adds the song which was just played to the queue."""
+        await ctx.defer()
         if ctx.voice_client is not None:
             if ctx.author.voice.channel == ctx.guild.me.voice.channel:
                 if ctx.voice_client.is_playing():
@@ -238,9 +248,10 @@ class Music(commands.Cog):
 
     #---------------------------------------------------------------------------------
     
-    @commands.command(name='next', description='Goes to the next audio in the queue.', aliases=['>|', 'skip'])
-    @commands.has_permissions(manage_channels=True)
-    async def skip(self, ctx):
+    @commands.hybrid_command(name="skip")
+    async def _skip(self, ctx):
+        """Skips the current song."""
+        await ctx.defer()
         if ctx.voice_client is not None:
             if ctx.author.voice.channel == ctx.guild.me.voice.channel:
                 if ctx.voice_client.is_playing():
@@ -255,29 +266,31 @@ class Music(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='stop', description='Stops the current audio and clears the queue.', aliases=['[]'])
-    @commands.has_permissions(manage_channels=True)
-    async def stop(self, ctx):
+    @commands.hybrid_command(name="stop")
+    async def _stop(self, ctx):
+        """Skips the current song and clears the queue."""
+        await ctx.defer()
         await self.skip(ctx)
         self.queue = []
         await ctx.send("**Stopped.**")
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='pause', description='Pauses the current audio.', aliases=['||'])
-    async def pause(self, ctx):
+    @commands.hybrid_command(name="pause")
+    async def _pause(self, ctx):
+        """Pauses the current song, if it isn't already paused."""
+        await ctx.defer()
         if ctx.voice_client.is_playing() == True:
             ctx.voice_client.pause()
-
             await ctx.send(f"The player is now **paused**. Use **resume** to unpause.")
-
         else:
             raise commands.CommandError("The music is already paused.")
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='resume', description='Resumes the current audio.', aliases=['|>'])
-    async def resume(self, ctx):
+    @commands.hybrid_command(name="resume")
+    async def _resume(self, ctx):
+        """Resumes the current song, if it was paused."""
         if ctx.voice_client.is_paused():
             ctx.voice_client.resume()
             await ctx.send("**Resumed**")
@@ -286,62 +299,74 @@ class Music(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='playbackspeed', description='Displays the current audio playback speed multiplier.', aliases=['pbs', 'tempo'])
-    async def playback_speed(self, ctx):
+    @commands.hybrid_command(name="playbackspeed")
+    async def _playback_speed(self, ctx):
+        """Displays the current audio playback speed."""
         global pbs
         await ctx.send(f"**Playback speed: `{pbs}x`**")
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='setplaybackspeed', description='Sets the audio playback speed multiplier. [0.5, 100]', aliases=['spbs', 'settempo'])
+    @commands.hybrid_command(name="setplaybackspeed")
+    @app_commands.describe(playback_speed = f"The speed multiplier, in the range ({PBS_MIN}, {PBS_MAX}), exclusive.")
     @commands.has_permissions(manage_channels=True)
-    async def set_playback_speed(self, ctx: commands.Context, playback_speed: float):
+    async def _set_playback_speed(self, ctx: commands.Context, playback_speed: float):
+        """Sets the audio playback speed. This only takes effect on the next song."""
+        global pbs
+        global PBS_MIN
+        global PBS_MAX
         if ctx.voice_client is None:
             raise commands.CommandError("I am not connected to any voice channels.")
 
         elif ctx.author.voice.channel == ctx.voice_client.channel:
             # If the user is in the same channel as me...
-            if 0.5 < playback_speed < 100:
-                global pbs
+            if PBS_MIN < playback_speed < PBS_MAX:
                 pbs = playback_speed
                 await ctx.send(f"**Set playback speed to `{pbs}x`. Effects will be applied on the next play command.**")
             else:
-                raise commands.CommandError("Playback speed must be in range [0.5, 100].")
+                raise commands.CommandError(f"Playback speed must be in range ({PBS_MIN}, {PBS_MAX}), exclusive.")
 
         else:
             raise commands.CommandError("No trooling.")
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='volume', description='Displays the current audio volume multiplier.', aliases=['vol'])
-    async def volume(self, ctx):
+    @commands.hybrid_command(name="volume")
+    async def _volume(self, ctx):
+        """Displays the current audio volume multiplier."""
         await ctx.send(f"**Audio volume: `{ctx.voice_client.source.volume}x`**")
 
     #---------------------------------------------------------------------------------
                 
-    @commands.command(name='setvolume', description='Sets the audio volume multiplier [0, 2].', aliases=['setvol'])
-    @commands.has_permissions(deafen_members=True)
-    async def set_volume(self, ctx: commands.Context, volume: float):
+    @commands.hybrid_command(name="setvolume")
+    @app_commands.describe(volume = f"The value for the volume, in the range [{VOL_MIN}, {VOL_MAX}], inclusive.")
+    async def _set_volume(self, ctx: commands.Context, volume: float):
+        """Sets the audio volume multiplier."""
+        global VOL_MIN
+        global VOL_MAX
+
         if ctx.voice_client is None:
             raise commands.CommandError("I am not connected to any voice channels.")
 
         elif ctx.author.voice.channel == ctx.voice_client.channel:
-            if 0 <= volume <= 2:
+            if VOL_MIN <= volume <= VOL_MAX:
                 ctx.voice_client.source.volume = volume
             else:
-                raise commands.CommandError("Volume must be in range [0, 2]")
+                raise commands.CommandError(f"Volume must be in range [{VOL_MIN}, {VOL_MAX}], inclusive.")
 
         else:
             raise commands.CommandError("No trooling.")
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='leave', description='Stops and disconnects from the voice channel.', aliases=[])
-    async def leave(self, ctx: commands.Context,):
+    @commands.hybrid_command(name="leave")
+    async def _leave_voice(self, ctx: commands.Context):
+        """Stops playing audio and disconnects from the voice channel."""
         if ctx.voice_client is not None:
             if ctx.author.voice.channel == ctx.guild.me.voice.channel:
                 if ctx.voice_client.is_playing():
                     await ctx.send("The player has stopped.")
+                self.queue = []
                 await ctx.voice_client.disconnect()
                 await ctx.voice_client.cleanup()
             else:
@@ -351,23 +376,25 @@ class Music(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='move', description='Moves a member into a different voice channel.', aliases=[])
-    async def v_move(self, ctx: commands.Context, member: discord.Member, *, voice_channel: discord.VoiceChannel):
+    @commands.hybrid_command(name="move")
+    @app_commands.describe(member = "The member to move.",
+                           voice_channel = "The voice channel to move them to.")
+    @commands.has_permissions(move_members=True)
+    async def _move_voice(self, ctx: commands.Context, member: discord.Member, *, voice_channel: discord.VoiceChannel):
+        """Attempts to move a user to a vc. Only works if they are in another vc in the same server."""
         if ctx.author.permissions_in(ctx.author.voice.channel).move_members == True:
             if member.voice is not None:
-                await member.move_to()
+                await member.move_to(voice_channel)
             else:
                 raise commands.CommandError("This member is not currently connected to any voice channel.")
         else:
             raise commands.CommandError("You do not have the `move members` permission required for this command.")
 
-    @commands.command(
-        name='pull',
-        help='Pulls a member into your current voice channel.',
-        aliases=['summon']
-    )
-
-    async def _pull(self, ctx: commands.Context, member: discord.Member):
+    @commands.hybrid_command(name="pull")
+    @app_commands.describe(member = "The member to pull into the voice channel.")
+    @commands.has_permissions(move_members=True)
+    async def _pull_voice(self, ctx: commands.Context, member: discord.Member):
+        """Attempts to move a member into your vc. Only works if they are in another vc in the same server."""
         if ctx.author.voice is not None:
             if ctx.author.permissions_in(ctx.author.voice.channel).move_members == True:
                 if ctx.guild.me.permissions_in(ctx.author.voice.channel).move_members == True:
@@ -383,7 +410,7 @@ class Music(commands.Cog):
             raise commands.CommandError(ctx.author.name + ": You are not connected to a voice channel.")
 
     @_play.before_invoke
-    async def ensure_voice(self, ctx: commands.Context,):
+    async def ensure_voice(self, ctx: commands.Context):
         if ctx.author.voice: #If the user is in a voice channel...
             in_user_vc = False #Default value - if voice_client is None then it stays False.
             if ctx.guild.voice_client is not None:
