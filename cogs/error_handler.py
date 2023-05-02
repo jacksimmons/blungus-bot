@@ -3,12 +3,13 @@ import sys
 import discord
 import yt_dlp
 
+from discord import app_commands
 from discord.ext import commands
 
 """
 If you are not using this inside a cog, add the event decorator e.g:
 @bot.event
-async def on_command_error(ctx, error)
+async def on_command_error(ctx: commands.Context, error)
 
 For examples of cogs see:
 Rewrite:
@@ -16,7 +17,7 @@ https://gist.github.com/EvieePy/d78c061a4798ae81be9825468fe146be
 Async:
 https://gist.github.com/leovoel/46cd89ed6a8f41fd09c5
 
-This example uses @rewrite version of the lib. For the async version of the lib, simply swap the places of ctx, and error.
+This example uses @rewrite version of the lib. For the async version of the lib, simply swap the places of ctx: commands.Context, and error.
 e.g: on_command_error(self, error, ctx)
 
 For a list of exceptions:
@@ -28,33 +29,37 @@ class CommandErrorHandler(commands.Cog):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
+    async def on_command_error(self, ctx: commands.Context, error):
         """The event triggered when an error is raised while invoking a command.
         ctx   : Context
         error : Exception"""
 
         # This prevents any commands with local handlers being handled here in on_command_error.
+        if hasattr(ctx.command, 'on_error'):
+            return
 
-        #if hasattr(ctx.command, 'on_error'):
-        #    return
+        # This prevents any cogs with an overwritten cog_command_error being handled here.
+        cog = ctx.cog
+        if cog:
+            if cog._get_overridden_method(cog.cog_command_error) is not None:
+                return
 
-        ignored = commands.CommandNotFound
+        ignored = (commands.CommandNotFound, )
 
         # Allows us to check for original exceptions raised and sent to CommandInvokeError.
         # If nothing is found. We keep the exception passed to on_command_error.
         error = getattr(error, 'original', error)
 
+        print(type(error))
+
         # Anything in ignored will return and prevent anything happening.
         if isinstance(error, ignored):
-            print(f'Ignoring exception in command {ctx.command}:', file=sys.stderr)
-            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
             return
-
+        
         #-----------------------------------------------------------------------------
         # Default discord.py exceptions
-
-        elif isinstance(error, commands.CommandError):
-            return await ctx.send('❗' + str(error))
+        elif isinstance(error, app_commands.CommandInvokeError):
+            return await ctx.send(f"❗ {str(error)}")
 
         elif isinstance(error, discord.Forbidden):
             return await ctx.send(f'❗ {ctx.author.mention}, I am not permitted to do that.')
@@ -96,14 +101,16 @@ class CommandErrorHandler(commands.Cog):
         # YTDL Exceptions
         elif isinstance(error, yt_dlp.utils.DownloadError):
             return await ctx.send("No video results.")
+        
+        elif isinstance(error, commands.CommandError):
+            return await ctx.send('❗' + str(error))
 
         #-----------------------------------------------------------------------------
 
         # All other Errors not returned come here... And we can just print the default TraceBack.
-
-        print(f"Exception in command {ctx.command}, type " + str(type(error)))
-        traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-        return
+        else:
+            await ctx.send(f"❗ {str(error)}")
+            return
 
 async def setup(bot):
     await bot.add_cog(CommandErrorHandler(bot))

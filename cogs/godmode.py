@@ -1,8 +1,9 @@
-﻿import enum
-import sys
-
+﻿import sys
 import discord
+
+from typing import Literal, Optional
 from discord.ext import commands
+from discord.ext.commands import Greedy, Context
 
 import json
 
@@ -14,7 +15,7 @@ max_messages = 10
 class Godmode(commands.Cog):
 
     def __init__(self, bot):
-        self.bot = bot
+        self.bot:commands.Bot = bot
 
     #---------------------------------------------------------------------------------
 
@@ -23,7 +24,7 @@ class Godmode(commands.Cog):
         description="Sets the context for the GUI.",
         aliases=['ctx'])
 
-    async def set_gui_context(self, ctx):
+    async def set_gui_context(self, ctx: Context):
         with open("data/data.json", "r") as jsonfile:
             data = json.load(jsonfile)
             
@@ -50,7 +51,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def set_status(self, ctx, status:str, activity_type:str, name:str, url:str=None):
+    async def set_status(self, ctx: Context, status:str, activity_type:str, name:str, url:str=None):
         if activity_type == "playing":
             final_activity_type = discord.ActivityType.playing
         elif activity_type == "streaming":
@@ -77,7 +78,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def set_game(self, ctx, name: str): #try to add start and end
+    async def set_game(self, ctx: Context, name: str): #try to add start and end
         await self.bot.change_presence(activity=discord.Game(name=name))
 
     #---------------------------------------------------------------------------------
@@ -90,7 +91,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def set_stream(self, ctx, name: str,  url: str=None, details: str=None, twitch_name: str=None):
+    async def set_stream(self, ctx: Context, name: str,  url: str=None, details: str=None, twitch_name: str=None):
         await self.bot.change_presence(activity=discord.Streaming(name=name, details=details, url=url, twitch_name=twitch_name))
 
     #---------------------------------------------------------------------------------
@@ -106,7 +107,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def set_activity(self, ctx, name: str, type: int, url: str=None, details: str=None, state: str=None, application_id: int=None):
+    async def set_activity(self, ctx: Context, name: str, type: int, url: str=None, details: str=None, state: str=None, application_id: int=None):
         if 0 <= type <= 3:
             await self.bot.change_presence(activity=discord.Activity(name=name, type=type, application_id=application_id, url=url, state=state, details=details))
         else:
@@ -121,7 +122,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def createguild(self, ctx, name: str, icon: bytes=None):
+    async def createguild(self, ctx: Context, name: str, icon: bytes=None):
         try:
             guild = await self.bot.create_guild(name=name, icon=icon)
             await ctx.send(f"The guild `{name}` has been created, with id {guild.id}.")
@@ -141,9 +142,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def gimme_role(self, ctx, member, role):
-        member = await Base.m_converter.convert(ctx, member)
-        role = await Base.r_converter.convert(ctx, role)
+    async def gimme_role(self, ctx: Context, member: discord.Member, role: discord.Role):
         await member.add_roles(role)
         await ctx.send(f"Added role to {member.mention}: {role.mention}.")
 
@@ -156,8 +155,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def create_admin_role(self, ctx, role):
-        role = await Base.r_converter(ctx, role)
+    async def create_admin_role(self, ctx: Context, role: discord.Role):
         guild = ctx.guild
         admin_role = await guild.create_role(name="Admin", permissions=discord.Permissions.all(), reason="Requested by bot owner.")
         await ctx.send(f"Created role {admin_role.mention}")
@@ -175,7 +173,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def broadcast_command(self, ctx, channel_id: int, quantity: int, *, message: str):
+    async def broadcast_command(self, ctx: Context, channel_id: int, quantity: int, *, message: str):
         channel = self.bot.get_channel(channel_id)
         i = 0
         msg = await ctx.send(f"Broadcasting '{message}' {quantity} times to Channel <#{channel.id}>, {ctx.message.author}.")
@@ -187,7 +185,7 @@ class Godmode(commands.Cog):
 
     @commands.command(name='mess', aliases=['m'])
     @commands.is_owner()
-    async def mess(self, ctx, *, arg): #Command for testing
+    async def mess(self, ctx: Context, *, arg): #Command for testing
         with open('data.json', 'r') as file:
             all_data = json.load(file)
         all_data['guilds']['id'] = {}
@@ -201,11 +199,11 @@ class Godmode(commands.Cog):
     @commands.command(name='eval', description='Evaluate and run python code')
     @commands.is_owner()
     #https://stackoverflow.com/questions/44859165/async-exec-in-python
-    async def evaluate(self, ctx, *, code):
+    async def evaluate(self, ctx: Context, *, code):
         try:
             # Make an async function with the code and `exec` it
             exec(
-                f'async def __ex(self, ctx): ' +
+                f'async def __ex(self, ctx: Context): ' +
                 ''.join(f'\n {l}' for l in code.split('\n'))
             )
 
@@ -227,7 +225,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def guild_count(self, ctx):
+    async def guild_count(self, ctx: Context):
         await ctx.send(f"I am in `{len(self.bot.guilds)}`.")
 
     #---------------------------------------------------------------------------------
@@ -239,7 +237,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def guild_list(self, ctx):
+    async def guild_list(self, ctx: Context):
         guilds = ''
         for x in range(0, len(self.bot.guilds)):
             if guilds == '':
@@ -257,7 +255,7 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def del_guild(self, ctx, guild: int):
+    async def del_guild(self, ctx: Context, guild: int):
         await self.bot.get_guild(guild).delete()
         await ctx.send(f"Deleted {guild}")
 
@@ -270,12 +268,41 @@ class Godmode(commands.Cog):
     )
 
     @commands.is_owner()
-    async def quit_command(self, ctx):
+    async def quit_command(self, ctx: Context):
         await ctx.send("Quitting...")
         await self.bot.close()
         sys.exit(0)
 
     #---------------------------------------------------------------------------------
 
-async def setup(bot):
+    @commands.command(
+        name="sync",
+        description="Syncs slash commands.",
+        aliases=[])
+    @commands.is_owner()
+    async def _sync(self, ctx: Context, guilds: Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+        if not guilds:
+            if spec == "~":
+                synced = await self.bot.tree.sync(guild=ctx.guild)
+            elif spec == "*":
+                self.bot.tree.copy_global_to(guild=ctx.guild)
+                synced = await ctx.bot.tree.sync(guild=ctx.guild)
+            elif spec == "^":
+                self.bot.tree.clear_commands(guild=ctx.guild)
+                await ctx.bot.tree.sync(guild=ctx.guild)
+                synced = []
+            else:
+                synced = await ctx.bot.tree.sync()
+
+            await ctx.send(
+                f"Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}"
+            )
+            return
+
+        ret = 0
+        for guild in guilds:
+            await self.bot.tree.sync(guild=guild)
+        await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
+
+async def setup(bot: commands.Bot):
     await bot.add_cog(Godmode(bot))

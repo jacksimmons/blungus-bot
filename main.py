@@ -2,6 +2,8 @@
 import discord
 import random
 import json
+import os
+import dotenv
 
 from datetime import datetime as d
 from discord.ext import commands
@@ -11,11 +13,6 @@ start = d.timestamp(d.now())
 
 # Define cogs. For a cog to be used it must be here.
 cogs = [
-    'cogs.miscellaneous',
-    "cogs.math",
-    'cogs.server',
-    'cogs.info',
-    'cogs.admin',
     'cogs.godmode',
     'cogs.music',
     'cogs.sentience',
@@ -50,8 +47,9 @@ async def load_extensions():
 async def main():
     async with bot:
         await load_extensions()
-        with open("data/bot_token.txt", "r") as token_file:
-            await bot.start(token_file.read(), reconnect=True)
+        dotenv.load_dotenv()
+        token = str(os.getenv("TOKEN"))
+        await bot.start(token, reconnect=True)
 
 @bot.event
 async def on_ready():

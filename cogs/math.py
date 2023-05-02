@@ -64,7 +64,7 @@ class Math(commands.Cog):
             aliases=["calc2"]
         )
 
-    async def calculator(self, ctx, num1: Decimal, calc: str, num2: Decimal):
+    async def calculator(self, ctx: commands.Context, num1: Decimal, calc: str, num2: Decimal):
         if calc in operator_dict:
             if len(str(num1)) <= 30 and len(str(num2)) <= 30:
                 try:
@@ -102,7 +102,7 @@ class Math(commands.Cog):
         aliases=["calc1"]
     )
 
-    async def single_calc(self, ctx, operator: str, x: Decimal):
+    async def single_calc(self, ctx: commands.Context, operator: str, x: Decimal):
         if operator in single_value_operator_dict:
             if len(str(x)) <= 30:
                 try:
@@ -144,7 +144,7 @@ class Math(commands.Cog):
         aliases=["diff"]
     )
 
-    async def differentiate(self, ctx, equation: str):
+    async def differentiate(self, ctx: commands.Context, equation: str):
         x = sympy.symbols("x")
         d = ""
         expr = sympy.parse_expr(equation,
@@ -161,7 +161,7 @@ class Math(commands.Cog):
         aliases=["int"]
     )
 
-    async def integrate(self, ctx, equation: str):
+    async def integrate(self, ctx: commands.Context, equation: str):
         x = sympy.symbols("x")
         d = ""
         expr = sympy.parse_expr(equation,

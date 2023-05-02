@@ -3,28 +3,10 @@ import os
 import discord
 
 from discord.ext import commands
-from discord.ext.commands import UserConverter
-from discord.ext.commands import MemberConverter
-from discord.ext.commands import TextChannelConverter
-from discord.ext.commands import VoiceChannelConverter
-from discord.ext.commands import CategoryChannelConverter
-from discord.ext.commands import RoleConverter
-from discord.ext.commands import EmojiConverter
-from discord.ext.commands import ColourConverter
 
 class Base:
     dotw = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] #Days of the week
     moty = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] #Months of the year
-
-    # Converters
-    u_converter: UserConverter = UserConverter()
-    m_converter: MemberConverter = MemberConverter()
-    tc_converter: TextChannelConverter = TextChannelConverter()
-    vc_converter: VoiceChannelConverter = VoiceChannelConverter()
-    cc_converter: CategoryChannelConverter = CategoryChannelConverter()
-    r_converter: RoleConverter = RoleConverter()
-    e_converter: EmojiConverter = EmojiConverter()
-    c_converter: ColourConverter = ColourConverter()
 
     #Method used to convert a large list into a neat string with the given constraints, converting
     #each member of the list from data to data.name for the purpose of the discord bot.

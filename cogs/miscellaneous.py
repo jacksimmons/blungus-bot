@@ -39,7 +39,7 @@ class Misc(commands.Cog):
         aliases=['len']
     )
 
-    async def length_command(self, ctx, *, message: str):
+    async def length_command(self, ctx: commands.Context, *, message: str):
         if len(message) <= 500:
             await ctx.send(f'"{message}" is {len(message)} characters long.')
         else:
@@ -53,7 +53,7 @@ class Misc(commands.Cog):
         aliases=['parrot','repeat','copy']
     )
 
-    async def say_command(self, ctx, *, message: str):
+    async def say_command(self, ctx: commands.Context, *, message: str):
         await ctx.send(message)
         await ctx.message.delete()
 
@@ -64,7 +64,7 @@ class Misc(commands.Cog):
     #     description='Add a slapper.',
     # )
     #
-    # async def add_slapper(self, ctx, slapper: User):
+    # async def add_slapper(self, ctx: commands.Context, slapper: User):
     #     with open('data/data.json', 'w') as file:
     #         contents = json.load(file)
     #         contents["trolliliyan"]["slappers"].append(slapper.id)
@@ -103,7 +103,7 @@ class Misc(commands.Cog):
         description='Adds an insult to Iliyan trolling.'
     )
 
-    async def ti_addinsult(self, ctx, *, message:str):
+    async def ti_addinsult(self, ctx: commands.Context, *, message:str):
         contents: dict = {}
         with open("data/data.json", "r") as file:
             contents = json.load(file)
@@ -118,7 +118,7 @@ class Misc(commands.Cog):
         description='Removes an insult from Iliyan trolling.'
     )
 
-    async def ti_removeinsult(self, ctx, *, number: int):
+    async def ti_removeinsult(self, ctx: commands.Context, *, number: int):
         contents: dict = {}
         with open("data/data.json", "r") as file:
             contents = json.load(file)

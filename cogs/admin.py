@@ -2,8 +2,6 @@ import discord
 import json
 
 from discord.ext import commands
-from discord.ext.commands import UserConverter
-from discord.ext.commands import MemberConverter
 
 from base import Base
 
@@ -24,10 +22,9 @@ class Admin(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(manage_nicknames=True)
-    async def _rename(self, ctx, target, *, nickname: str=None):
+    async def _rename(self, ctx: commands.Context, member: discord.Member, *, nickname: str=None):
         #This command will by default remove a member's nickname, however if the 'nickname'
         #perameter is provided, the member will be given that nickname.
-        member: discord.Member = await converter.convert(ctx, target)
         if member.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
             if member.id != ctx.guild.owner_id: #Nobody can rename the owner
                 await member.edit(nick=nickname)
@@ -46,7 +43,7 @@ class Admin(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(kick_members=True)
-    async def _kick(self, ctx, member_name, *, reason=None):
+    async def _kick(self, ctx: commands.Context, member_name, *, reason=None):
         ban_entries = await ctx.guild.bans()
 
         #This command will by default kick a member with no reason, however if the 'reason'
@@ -85,9 +82,7 @@ class Admin(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
-    async def _ban(self, ctx, target, delete_message_days: int=1, *, reason=None):
-        user: discord.User = u_converter.convert(ctx, target)
-
+    async def _ban(self, ctx: commands.Context, user: discord.User, delete_message_days: int=1, *, reason=None):
         ban_entries = await ctx.guild.bans()
 
         content = ''
@@ -104,22 +99,21 @@ class Admin(commands.Cog):
             #in the ban entries list].
 
             if user in ctx.guild.members:
-                member = m_converter.convert(ctx, user)
                 #If the user is a member of the guild, we need to ensure the author is a higher rank than the victim
                 #to prevent abuse of the bot, however if the user is not a member of the guild, this is not an issue.
 
-                if member.id == self.bot.user.id:
+                if user.id == self.bot.user.id:
                     #We don't want the bot to be able to ban itself as this may cause issues
                     await ctx.send('Don\'t make me do that!')
 
-                elif member.id == ctx.author.id:
+                elif user.id == ctx.author.id:
                     #We don't want the author to be able to ban themselves as this may cause issues
                     await ctx.send(f'{ctx.author.mention}, you cannot ban yourself!')
 
-                elif member.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
-                    if member.id != ctx.guild.owner_id: #Nobody can ban the owner, so this shouldn't be an option.
-                        await ctx.guild.ban(user=member, reason=reason, delete_message_days=delete_message_days)
-                        s = True
+                elif user.top_role < ctx.author.top_role or ctx.author.id == ctx.guild.owner_id:
+                    if user.id != ctx.guild.owner_id: #Nobody can ban the owner, so this shouldn't be an option.
+                        await ctx.guild.ban(user=user, reason=reason, delete_message_days=delete_message_days)
+                        success = True
                     else:
                         await ctx.send(f'{ctx.author.mention}, you can\'t ban the owner!')
 
@@ -128,17 +122,16 @@ class Admin(commands.Cog):
                     await ctx.send(f'{ctx.author.mention}, you are unable to ban someone with an equal or higher rank to you.')
 
             else:
-                await ctx.guild.ban(user=member, reason=reason, delete_message_days=delete_message_days)
-                s = True
+                # Preban
+                await ctx.guild.ban(user=user, reason=reason, delete_message_days=delete_message_days)
+                success = True
 
-            if s == True:
-                #The output for this command is more complex, so the variable 's' is used to determine when
-                #the ban has been [s]uccessful and the output is then determined here.
-                content = f'`{str(member)}` was banned.'
+            if success == True:
+                content = f'`{user.name}` was banned.'
                 if reason is not None:
                     content = content[:len(content)-1] + f' for `{reason}`.'
                 content += f'\nThe past `{delete_message_days} days` of messages for this user were deleted.'
-                content += f'\nUser ID: `{str(member.id)}`'
+                content += f'\nUser ID: `{str(user.id)}`'
                 await ctx.send(content)
 
         else:
@@ -153,7 +146,7 @@ class Admin(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(administrator=True) #We don't want members able to ban multiple people with just ban_members
-    async def _mban(self, ctx, users: commands.Greedy[discord.User], delete_message_days=1, *, reason=None):
+    async def _mban(self, ctx: commands.Context, users: commands.Greedy[discord.User], delete_message_days=1, *, reason=None):
         #This command uses commands.Greedy, which takes in arguments of a certain type until no more are given,
         #allowing multiple users to be passed into the command at once, so this command is able to ban multiple users at once.
 
@@ -169,13 +162,10 @@ class Admin(commands.Cog):
         elif delete_message_days > 7:
             delete_message_days = 7
             await ctx.send("`Delete message days` must be an integer between `0 and 7` inclusive, so it has been set to 7.")
-        for x in range(0,len(users)):
 
+        for x in range(0, len(users)):
             if users[x] not in [BanEntry.user for BanEntry in ban_entries]: #Generator to check the user is not already banned
-
                 if users[x] in ctx.guild.members:
-                    users = await self.m_converter.convert(ctx, str(users[x]))
-
                     if users.id == self.bot.user.id: #We don't want the bot to be able to ban itself
                         failed_bans += f'\n`{users}: Don\'t make me ban myself!`'
 
@@ -259,7 +249,7 @@ class Admin(commands.Cog):
 
     @commands.guild_only()
     @commands.has_permissions(ban_members=True)
-    async def _unban(self, ctx, user: discord.User, *, reason=None):
+    async def _unban(self, ctx: commands.Context, user: discord.User, *, reason=None):
 
         ban_entries = await ctx.guild.bans()
 
