@@ -91,7 +91,7 @@ class Sentience(commands.Cog):
 
     @commands.guild_only()
     @commands.command(name='setchatchannel', help='Sets the channel that the bot will respond to your messages in.')
-    async def _setchatchannel(self, ctx, channel_id:int):
+    async def _setchatchannel(self, ctx: commands.Context, channel_id:int):
         with open('data/guilds.json', 'r+') as f:
             #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
             #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
@@ -142,7 +142,7 @@ class Sentience(commands.Cog):
     @commands.guild_only()
     @commands.command(name='feed', help='Feeds the bot all of the inputs and responses from a specific channel.')
     @commands.is_owner()
-    async def _feed(self, ctx, channel_id:int, limit:int=None):
+    async def _feed(self, ctx: commands.Context, channel_id:int, limit:int=None):
         target = self.bot.get_channel(channel_id)
         await ctx.send(f"Preparing feast from {target.mention}.")
 

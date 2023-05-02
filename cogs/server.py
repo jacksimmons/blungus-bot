@@ -1,11 +1,14 @@
 import discord
 import json
 
+from typing import List
 from discord.ext import commands
-from discord.ext.commands import MemberConverter
-from discord.ext.commands import RoleConverter
+from discord.ui import View
+from discord import ActionRow, Button, SelectMenu, SelectOption, View
 
 from base import Base
+
+embed_colour = 0x0000FF
 
 class Server(commands.Cog):
     #A class which allows Members to create, modify or delete new Guild-related objects.
@@ -29,7 +32,7 @@ class Server(commands.Cog):
             raise commands.BadArgument("Invalid subcommand passed.")
 
     @_welcome.command(name='set', help='Set the channel for which welcome messages will be displayed in.')
-    async def setup_welcome_messages(self, ctx, channel:discord.TextChannel):
+    async def setup_welcome_messages(self, ctx: commands.Context, channel:discord.TextChannel):
         with open('data/guilds.json', 'r+') as file:
             #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
             #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
@@ -148,7 +151,7 @@ class Server(commands.Cog):
                     if len(content) >= 1024:
                         content = content[:1000] + ' ...'
 
-                    embed = discord.Embed(colour=0x100000)
+                    embed = discord.Embed(colour=embed_colour)
                     embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon_url)
                     embed.add_field(name="Tags", value=content, inline=False)
 
@@ -160,7 +163,7 @@ class Server(commands.Cog):
                 raise commands.CommandError(ctx.author.mention + ', no data is being stored for this guild (this includes tags).')
 
     @_tags.command(name='create', aliases=['add','c'])
-    async def _tagcreate(self, ctx, name, *, value):
+    async def _tagcreate(self, ctx: commands.Context, name, *, value):
         """Create a tag."""
         if len(name) <= 30:
             with open('data/guilds.json', 'r+') as file:
@@ -193,7 +196,7 @@ class Server(commands.Cog):
             raise commands.CommandError(f"{ctx.author.mention}, tag names can be a maximum of 30 characters long.")
 
     @_tags.command(name='delete', aliases=['remove','d'])
-    async def _tagdelete(self, ctx, *, name):
+    async def _tagdelete(self, ctx: commands.Context, *, name):
         """Delete a tag."""
 
         with open('data/guilds.json', 'r+') as file:
@@ -232,7 +235,7 @@ class Server(commands.Cog):
         help='Displays one of the guild\'s tags. See the tags command for more info.',
     )
 
-    async def _tag(self, ctx, *, name):
+    async def _tag(self, ctx: commands.Context, *, name):
         with open('data/guilds.json', 'r') as file:
             #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
             #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
@@ -265,7 +268,7 @@ class Server(commands.Cog):
 
     @_role.command(name='create', help='Create a new Role.')
     @commands.has_permissions(manage_roles=True)
-    async def _rolecreate(self, ctx, name=None, colour:discord.Colour=None, hoist:bool=False, mentionable:bool=False, *, reason=None):
+    async def _rolecreate(self, ctx: commands.Context, name=None, colour:discord.Colour=None, hoist:bool=False, mentionable:bool=False, *, reason=None):
         role: discord.Role = await ctx.guild.create_role(name=name, colour=colour, hoist=hoist, mentionable=mentionable, reason=reason)
         if len(name) < 100:
             await ctx.send(f'{role.mention} has been created!')
@@ -274,7 +277,7 @@ class Server(commands.Cog):
 
     @_role.command(name='info', help='Display some information about an existing Role.', aliases=['i'])
     @commands.has_permissions(manage_roles=True)
-    async def _roleinfo(self, ctx, *, the_role):
+    async def _roleinfo(self, ctx: commands.Context, *, the_role):
         role: discord.Role = await Base.r_converter.convert(the_role)
 
         perms = None
@@ -324,13 +327,13 @@ class Server(commands.Cog):
 
     @_role.command(name='colour', help='Sets the colour for a Role.', aliases=['color','col'])
     @commands.has_permissions(manage_roles=True)
-    async def _rolecolour(self, ctx, role:discord.Role, colour:discord.Colour, *, reason=None):
+    async def _rolecolour(self, ctx: commands.Context, role:discord.Role, colour:discord.Colour, *, reason=None):
         await role.edit(colour=colour)
         await ctx.send(f"✅ Role colour changed to {str(colour)}.")
 
     @_role.command(name='hoist', help='Hoists an existing Role.', aliases=['h'])
     @commands.has_permissions(manage_roles=True)
-    async def _rolehoist(self, ctx, role:discord.Role, *, reason=None):
+    async def _rolehoist(self, ctx: commands.Context, role:discord.Role, *, reason=None):
         if role.hoist:
             await role.edit(hoist=False)
             await ctx.send("✅ Role is now **no longer hoisted.**")
@@ -340,7 +343,7 @@ class Server(commands.Cog):
 
     @_role.command(name='mentionable', help='Toggles mentionable for a Role.', aliases=['m'])
     @commands.has_permissions(manage_roles=True)
-    async def _rolementionable(self, ctx, role:discord.Role, *, reason=None):
+    async def _rolementionable(self, ctx: commands.Context, role:discord.Role, *, reason=None):
         if role.mentionable:
             await role.edit(mentionable=False)
             await ctx.send("✅ Role is now **no longer mentionable.**")
@@ -362,8 +365,7 @@ class Server(commands.Cog):
     )
 
     @commands.has_permissions(manage_roles=True)
-    async def _rolemove(self, ctx, target:discord.Role, movement, *, reason=None):
-        role: discord.Role = await Base.r_converter(ctx, target)
+    async def _rolemove(self, ctx: commands.Context, role: discord.Role, movement, *, reason=None):
         add = False
         subtract = False
 
@@ -402,8 +404,7 @@ class Server(commands.Cog):
 
     @_role.command(name='rename', help='Rename an existing Role.', aliases=['r'])
     @commands.has_permissions(manage_roles=True)
-    async def _rolerename(self, ctx, target, new_name, *, reason=None):
-        role: discord.Role = await Base.r_converter(ctx, target)
+    async def _rolerename(self, ctx: commands.Context, role: discord.Role, new_name, *, reason=None):
         await role.edit(name=new_name)
         if len(new_name) < 100:
             await ctx.send(f'✅ {new_name} has been renamed.')
@@ -412,9 +413,7 @@ class Server(commands.Cog):
 
     @_role.command(name='edit', help='Edit an existing Role.', aliases=['e'])
     @commands.has_permissions(manage_roles=True)
-    async def _roleedit(self, ctx, target, colour=discord.Colour.default(), hoist:bool=False, mentionable:bool=False, position:int=None, *, reason=None):
-        role: discord.Role = await Base.r_converter(ctx, target)
-        colour: discord.Colour = Base.c_converter(ctx, colour)
+    async def _roleedit(self, ctx: commands.Context, role: discord.Role, colour:discord.Colour=discord.Colour.default(), hoist:bool=False, mentionable:bool=False, position:int=None, *, reason=None):
         await role.edit(colour=colour, hoist=hoist, mentionable=mentionable, position=position, reason=reason)
         if len(role.name) < 100:
             await ctx.send(f'✅ {role.name} has been updated.')
@@ -423,8 +422,7 @@ class Server(commands.Cog):
 
     @_role.command(name='delete', help='Delete an existing Role.', aliases=['remove','del'])
     @commands.has_permissions(manage_roles=True)
-    async def _roledel(self, ctx, target, *, reason=None):
-        role: discord.Role = await Base.r_converter(ctx, target)
+    async def _roledel(self, ctx: commands.Context, role: discord.Role, *, reason=None):
         await role.delete(reason=reason)
         await ctx.send('✅ Role has been deleted.')
 
@@ -440,7 +438,7 @@ class Server(commands.Cog):
 
     @_textchannel.command(name='create', help='Create a Text Channel.')
     @commands.has_permissions(manage_channels=True)
-    async def _textcreate(self, ctx, name='text-channel', topic=None, category:discord.CategoryChannel=None, slowmode_delay:int=None, position:int=None, nsfw:bool=None, *, reason=None):
+    async def _textcreate(self, ctx: commands.Context, name='text-channel', topic=None, category:discord.CategoryChannel=None, slowmode_delay:int=None, position:int=None, nsfw:bool=None, *, reason=None):
         #Check if the Text Channel requested is valid and can be created;
         # - Is there a name more than 1 and less than 100 characters long?
         # - Is the length of the topic less than 1024 characters long?
@@ -462,15 +460,15 @@ class Server(commands.Cog):
 
     @_textchannel.command(name='clone', help='Clones a Text Channel.')
     @commands.has_permissions(manage_channels=True)
-    async def _textclone(self, ctx, channel_to_clone:discord.TextChannel, name=None, *, reason=None):
+    async def _textclone(self, ctx: commands.Context, channel_to_clone:discord.TextChannel, name=None, *, reason=None):
         cloned_channel = await channel_to_clone.clone(name=name, reason=reason)
         await ctx.send(f'Text Channel {channel_to_clone.mention} has been cloned to create {cloned_channel.mention}!')
 
     @_textchannel.command(name='info', help='Display some information about an existing Text Channel.')
     @commands.has_permissions(manage_channels=True)
-    async def _textinfo(self, ctx, *, target:discord.TextChannel):
+    async def _textinfo(self, ctx: commands.Context, *, target:discord.TextChannel):
 
-        embed = discord.Embed() #Create an embed
+        embed = discord.Embed(colour=embed_colour) #Create an embed
 
         embed.set_author(name=f'Text Channel Info', icon_url=ctx.guild.icon_url)
         embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
@@ -512,22 +510,22 @@ class Server(commands.Cog):
 
     @_textchannel.command(name='invites', help='Displays all invites currently leading to this Text Channel.')
     @commands.has_permissions(manage_guild=True)
-    async def _textinvites(self, ctx, *, channel:discord.TextChannel):
+    async def _textinvites(self, ctx: commands.Context, *, channel:discord.TextChannel):
 
         invites = Base.convert_long_list(channel.invites(), 100, 1000)
 
-        embed = discord.Embed()
+        embed = discord.Embed(colour=embed_colour)
         embed.set_author(name=channel.mention, icon_url=ctx.guild.icon_url)
         embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
 
         embed.add_field(name='Invites', value=invites)
 
     @_textchannel.command(name='pins', help='Displays all pinned messages in this Text Channel.')
-    async def _textpins(self, ctx, *, channel:discord.TextChannel):
+    async def _textpins(self, ctx: commands.Context, *, channel:discord.TextChannel):
 
         pins = [message.id for message in (await channel.pins())]
 
-        embed = discord.Embed()
+        embed = discord.Embed(colour=embed_colour)
         embed.set_author(name=f'📌Pins', icon_url=ctx.guild.icon_url)
         embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
 
@@ -540,11 +538,11 @@ class Server(commands.Cog):
 
     @_textchannel.command(name='webhooks', help='Displays all webhooks associated with this Text Channel.')
     @commands.has_permissions(manage_webhooks=True)
-    async def _textwebhooks(self, ctx, *, channel:discord.TextChannel):
+    async def _textwebhooks(self, ctx: commands.Context, *, channel:discord.TextChannel):
 
         webhooks = [webhook.name for webhook in (await channel.webhooks())]
 
-        embed = discord.Embed()
+        embed = discord.Embed(colour=embed_colour)
         embed.set_author(name=f'Webhooks', icon_url=ctx.guild.icon_url)
         embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
 
@@ -557,13 +555,13 @@ class Server(commands.Cog):
 
     @_textchannel.command(name='edit', help='Edit an existing Text Channel.')
     @commands.has_permissions(manage_channels=True)
-    async def _textedit(self, ctx, channel:discord.TextChannel, name, topic=None, category:discord.CategoryChannel=None, slowmode_delay:int=None, position:int=None, nsfw:bool=None, sync_perms:bool=None, *, reason=None):
+    async def _textedit(self, ctx: commands.Context, channel:discord.TextChannel, name, topic=None, category:discord.CategoryChannel=None, slowmode_delay:int=None, position:int=None, nsfw:bool=None, sync_perms:bool=None, *, reason=None):
         await channel.edit(name=name, topic=topic, position=position, nsfw=nsfw, sync_permissions=sync_perms, category=category, slowmode_delay=slowmode_delay, reason=None)
         await ctx.send(f'Text Channel {channel.mention} has been updated.')
 
     @_textchannel.command(name='delete', help='Deletes an existing Text Channel.')
     @commands.has_permissions(manage_channels=True)
-    async def _textdel(self, ctx, channel:discord.TextChannel, *, reason=None):
+    async def _textdel(self, ctx: commands.Context, channel:discord.TextChannel, *, reason=None):
         await channel.delete(reason=reason)
         await ctx.send(f'Text Channel {channel.mention} has been deleted.')
 
@@ -578,7 +576,7 @@ class Server(commands.Cog):
 
     @_voicechannel.command(name='create', help='Create a VoiceChannel.')
     @commands.has_permissions(manage_messages=True)
-    async def _voicecreate(self, ctx, name="Voice Channel", category:discord.CategoryChannel=None, user_limit:int=None, bitrate:int=None, position:int=None, *, reason=None):
+    async def _voicecreate(self, ctx: commands.Context, name="Voice Channel", category:discord.CategoryChannel=None, user_limit:int=None, bitrate:int=None, position:int=None, *, reason=None):
         #Check if the Voice Channel requested is valid and can be created;
         # - Is there a name more than 1 and less than 100 characters long?
         # - Is the user limit valid? (TBA)
@@ -592,15 +590,15 @@ class Server(commands.Cog):
 
     @_voicechannel.command(name='clone', help='Clones a Voice Channel.')
     @commands.has_permissions(manage_channels=True)
-    async def _voiceclone(self, ctx, channel_to_clone:discord.VoiceChannel, name=None, reason=None):
+    async def _voiceclone(self, ctx: commands.Context, channel_to_clone:discord.VoiceChannel, name=None, reason=None):
         cloned_channel = await channel_to_clone.clone(name=name, reason=reason)
         await ctx.send(f'Voice Channel {channel_to_clone.name} has been cloned to create {cloned_channel.name}!')
 
     @_voicechannel.command(name='info', help='Display some information about an existing Voice Channel.')
     @commands.has_permissions(manage_channels=True)
-    async def _voiceinfo(self, ctx, target:discord.VoiceChannel):
+    async def _voiceinfo(self, ctx: commands.Context, target:discord.VoiceChannel):
 
-        embed = discord.Embed() #Create an embed
+        embed = discord.Embed(colour=embed_colour) #Create an embed
         embed.set_author(name=f'{target.mention}', icon_url=ctx.guild.icon_url)
         embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
 
@@ -624,11 +622,11 @@ class Server(commands.Cog):
 
     @_voicechannel.command(name='invites', help='Displays all invites currently leading to this Voice Channel.')
     @commands.has_permissions(manage_guild=True)
-    async def _voiceinvites(self, ctx, channel:discord.VoiceChannel):
+    async def _voiceinvites(self, ctx: commands.Context, channel:discord.VoiceChannel):
 
         invites = Base.convert_long_list(channel.invites(), 100, 1000)
 
-        embed = discord.Embed()
+        embed = discord.Embed(colour=embed_colour)
         embed.set_author(name=channel.mention, icon_url=ctx.guild.icon_url)
         embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
 
@@ -636,13 +634,13 @@ class Server(commands.Cog):
 
     @_voicechannel.command(name='edit', help='Edit an existing Voice Channel.')
     @commands.has_permissions(manage_channels=True)
-    async def _voiceedit(self, ctx, channel:discord.VoiceChannel, name, user_limit:int=None, bitrate:int=None, category:discord.CategoryChannel=None, position:int=None, sync_perms:bool=None, *, reason=None):
+    async def _voiceedit(self, ctx: commands.Context, channel:discord.VoiceChannel, name, user_limit:int=None, bitrate:int=None, category:discord.CategoryChannel=None, position:int=None, sync_perms:bool=None, *, reason=None):
         await channel.edit(name=name, bitrate=bitrate, user_limit=user_limit, position=position, sync_permissions=sync_perms, category=category, reason=None)
         await ctx.send(f'Voice Channel {channel.name} has been updated.')
 
     @_voicechannel.command(name='delete', help='Deletes an existing Voice Channel.')
     @commands.has_permissions(manage_channels=True)
-    async def _voicedel(self, ctx, channel:discord.VoiceChannel, reason=None):
+    async def _voicedel(self, ctx: commands.Context, channel:discord.VoiceChannel, reason=None):
         await channel.delete(reason=reason)
         await ctx.send(f'Voice Channel {channel.name} has been deleted.')
 
@@ -657,7 +655,7 @@ class Server(commands.Cog):
 
     @_categorychannel.command(name='create', help='Create a channel category.')
     @commands.has_permissions(manage_channels=True)
-    async def _categorycreate(self, ctx, name: str="Category", reason: str=None):
+    async def _categorycreate(self, ctx: commands.Context, name: str="Category", reason: str=None):
         #Check if the Category requested is valid and can be created;
         # - Is the name in between 1 and 100 characters long?
         if 1 < len(name) < 100:
@@ -668,15 +666,15 @@ class Server(commands.Cog):
 
     @_categorychannel.command(name='clone', help='Clones a Category.')
     @commands.has_permissions(manage_channels=True)
-    async def _categoryclone(self, ctx, category_to_clone:discord.CategoryChannel, name=None, reason=None):
+    async def _categoryclone(self, ctx: commands.Context, category_to_clone:discord.CategoryChannel, name=None, reason=None):
         cloned_channel = await category_to_clone.clone(name=name, reason=reason)
         await ctx.send(f'Category {category_to_clone.name} has been cloned to create {cloned_channel.name}!')
 
     @_categorychannel.command(name='info', help='Display some information about an existing Category.')
     @commands.has_permissions(manage_channels=True)
-    async def _categoryinfo(self, ctx, target:discord.CategoryChannel):
+    async def _categoryinfo(self, ctx: commands.Context, target:discord.CategoryChannel):
 
-        embed = discord.Embed() #Create an embed
+        embed = discord.Embed(colour=embed_colour) #Create an embed
         embed.set_author(name=f'{target.name}', icon_url=ctx.guild.icon_url)
         embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
 
@@ -695,13 +693,13 @@ class Server(commands.Cog):
 
     @_categorychannel.command(name='edit', help='Edit an existing Category.')
     @commands.has_permissions(manage_channels=True)
-    async def _categoryedit(self, ctx, category:discord.CategoryChannel, name, position:int=None, nsfw:bool=None, reason=None):
+    async def _categoryedit(self, ctx: commands.Context, category:discord.CategoryChannel, name, position:int=None, nsfw:bool=None, reason=None):
         await category.edit(name=name, position=position, nsfw=nsfw, reason=reason)
         await ctx.send(f'Category {category.name} has been updated.')
 
     @_categorychannel.command(name='delete', help='Deletes an existing Category.')
     @commands.has_permissions(manage_channels=True)
-    async def _categorydel(self, ctx, category:discord.CategoryChannel, reason=None):
+    async def _categorydel(self, ctx: commands.Context, category:discord.CategoryChannel, reason=None):
         await category.delete(reason=reason)
         await ctx.send(f'Category {category.name} has been deleted.')
 
@@ -716,7 +714,7 @@ class Server(commands.Cog):
             raise commands.BadArgument("Invalid subcommand passed.")
 
     @_categoryadd.command(name='textchannel', help='Creates a Text Channel in a Category.', aliases=['text','tc'])
-    async def _categoryaddtext(self, ctx, category:discord.CategoryChannel, name='text-channel', topic=None, slowmode_delay=None, position:int=None, nsfw:bool=None, *, reason=None):
+    async def _categoryaddtext(self, ctx: commands.Context, category:discord.CategoryChannel, name='text-channel', topic=None, slowmode_delay=None, position:int=None, nsfw:bool=None, *, reason=None):
         #Check if the Text Channel requested is valid and can be created;
         # - Is there a name more than 1 and less than 100 characters long?
         # - Is the length of the topic less than 1024 characters long?
@@ -737,7 +735,7 @@ class Server(commands.Cog):
             await ctx.send("Please choose a name between 1 and 100 characters in length.")
 
     @_categoryadd.command(name='voicechannel', help='Creates a Voice Channel in a Category.', aliases=['voice','vc'])
-    async def _categoryaddvoice(self, ctx, category:discord.CategoryChannel, name='Voice Channel', user_limit:int=None, bitrate:int=None, *, reason=None):
+    async def _categoryaddvoice(self, ctx: commands.Context, category:discord.CategoryChannel, name='Voice Channel', user_limit:int=None, bitrate:int=None, *, reason=None):
         #Check if the Voice Channel requested is valid and can be created;
         # - Is there a name more than 1 and less than 100 characters long?
         # - Is the user limit valid? (TBA)
@@ -762,7 +760,7 @@ class Server(commands.Cog):
 
     @_invite.command(name='create', help='Create an instant invite.')
     @commands.has_permissions(create_instant_invite=True)
-    async def _invitecreate(self, ctx, channel, max_age:int=0, max_uses:int=0, temporary_membership:bool=False, unique_invite:bool=True, *, reason=None):
+    async def _invitecreate(self, ctx: commands.Context, channel, max_age:int=0, max_uses:int=0, temporary_membership:bool=False, unique_invite:bool=True, *, reason=None):
         try:
             t_converter = commands.TextChannelConverter()
             final = await t_converter.convert(ctx, channel)
@@ -782,10 +780,10 @@ class Server(commands.Cog):
             await ctx.send(f"Your invite to the Voice Channel {final.name} has been generated: {str(invite)}")
 
     @_invite.command(name='info', help='Displays information about an Invite.')
-    async def _inviteinfo(self, ctx, invite):
+    async def _inviteinfo(self, ctx: commands.Context, invite):
         invite = await self.bot.fetch_invite(invite)
 
-        embed = discord.Embed() #Create an Embed
+        embed = discord.Embed(colour=embed_colour) #Create an Embed
         embed.set_author(name='Invite Info')
         embed.set_footer(text=f'Requested by {str(ctx.author)}', icon_url=ctx.author.avatar_url)
 
@@ -816,7 +814,7 @@ class Server(commands.Cog):
 
     @_invite.command(name='delete', help='Deletes an Invite.')
     @commands.has_permissions(manage_channels=True)
-    async def _invitedel(self, ctx, invite, *, reason=None):
+    async def _invitedel(self, ctx: commands.Context, invite, *, reason=None):
         invite = await self.bot.fetch_invite(invite)
         await invite.delete(reason=reason)
         await ctx.send("Invite deleted.")
@@ -826,7 +824,7 @@ class Server(commands.Cog):
 
             widget = await self.bot.fetch_widget(ctx.guild.id)
 
-            embed = discord.Embed() #Create an Embed
+            embed = discord.Embed(colour=embed_colour) #Create an Embed
             embed.set_author(name='Widget: Online Members')
 
             members = Base.convert_long_list(widget.members, 40, 1000)
@@ -844,12 +842,23 @@ class Server(commands.Cog):
             raise commands.CommandError(f'{ctx.author.mention}: The widget for this guild is disabled.')
 
     @commands.command(name="vote", help="Makes a juicy vote.")
-    async def _vote(self, ctx, *, message):
-        embed = discord.Embed(color=0x0000ff)
+    async def _vote(self, ctx: commands.Context, *, choices: commands.Greedy[str]):
+        embed = discord.Embed(colour=0x0000ff)
         embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar)
         embed.set_footer(text="React to vote.")
         embed.add_field(name="Vote", value=message)
-        message = await ctx.send(embed=embed)
+
+        view = View()
+
+        options: List[SelectOption] = []
+        for i in range(0, len(choices)):
+            option = SelectOption(label=choices[i], value=i)
+            options.append(option)
+        menu = SelectMenu(options=options)
+
+        view.add_item(menu)
+
+        message = await ctx.send(embed=embed, view=view)
         await message.add_reaction('👍')
         await message.add_reaction('👎')
 
