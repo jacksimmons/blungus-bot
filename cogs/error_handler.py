@@ -50,8 +50,6 @@ class CommandErrorHandler(commands.Cog):
         # If nothing is found. We keep the exception passed to on_command_error.
         error = getattr(error, 'original', error)
 
-        print(type(error))
-
         # Anything in ignored will return and prevent anything happening.
         if isinstance(error, ignored):
             return
@@ -83,9 +81,6 @@ class CommandErrorHandler(commands.Cog):
             else:
                 return await ctx.send(f"❗ {ctx.author.mention}, `{ctx.command}` failed due to a bad argument: `{error.args[0]}`")
 
-        elif isinstance(error, discord.InvalidArgument):
-            return await ctx.send(f'❗ {ctx.author.mention}, your request failed due to an invalid argument: `{str(error)}`.')
-
         elif isinstance(error, commands.MissingPermissions):
             return await ctx.send(f"❗ {ctx.author.mention}, you need the following permissions to use this command: `{error.missing_perms}`")
 
@@ -106,11 +101,11 @@ class CommandErrorHandler(commands.Cog):
             return await ctx.send('❗' + str(error))
 
         #-----------------------------------------------------------------------------
-
-        # All other Errors not returned come here... And we can just print the default TraceBack.
+        
+        # All other Errors not returned come here. And we can just print the default TraceBack.
         else:
-            await ctx.send(f"❗ {str(error)}")
-            return
+            print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
+            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
 async def setup(bot):
     await bot.add_cog(CommandErrorHandler(bot))
