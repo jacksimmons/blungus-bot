@@ -25,9 +25,10 @@ class Server(commands.Cog):
     # Used to setup and toggle welcome messages in the current channel, as well as
     # toggle the usage of welcome messages server-wide.
 
-    @commands.group(name='welcome', help='Customise where and how the welcome messages feature operates.')
+    @commands.hybrid_group(name="welcome")
     @commands.guild_only()
     async def _welcome(self, ctx):
+        """Customise where and how the welcome messages feature operates."""
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
 
@@ -120,17 +121,12 @@ class Server(commands.Cog):
     #-> use tag, name = 'test'
     #-> bot sends: 'www.google.com'
 
-    #Note that the 'tag' command for using tags is in miscellaneous.py
-
-    @commands.group(
-        name='tags',
-        help='List, create or delete tags in this guild.',
-        invoke_without_command=True
-    )
-
     # Default callback is the list function
+
+    @commands.hybrid_group(name="tags")
     @commands.guild_only()
     async def _tags(self, ctx):
+        """List, create or delete Tags."""
         with open('data/guilds.json', 'r') as file:
             data = json.load(file)
             id = ctx.guild.id
@@ -229,13 +225,10 @@ class Server(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
+    @commands.hybrid_command(name="tag")
     @commands.guild_only()
-    @commands.command(
-        name='tag',
-        help='Displays one of the guild\'s tags. See the tags command for more info.',
-    )
-
     async def _tag(self, ctx: commands.Context, *, name):
+        """Displays one of the guild\'s tags. See the tags command for more info."""
         with open('data/guilds.json', 'r') as file:
             #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
             #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
@@ -260,9 +253,10 @@ class Server(commands.Cog):
     #---Roles are named tags which can be added to Members to give them specific permissions,
     #---allow them to see private channels, change the colour of their Usernames, etc.
 
-    @commands.group(name='role', help='Interact with or create new roles.', aliases=['r'])
+    @commands.hybrid_group(name="role")
     @commands.guild_only()
     async def _role(self, ctx):
+        """Interact with or create new Roles."""
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
 
@@ -431,8 +425,10 @@ class Server(commands.Cog):
     #---invites for, see pinned messages for, see webhooks for, edit and delete
     #---TextChannels.
 
-    @commands.group(name='textchannel', help='Interact with or create Text Channels.', aliases=['tc'])
+    @commands.hybrid_group(name="textchannel")
+    @commands.guild_only()
     async def _textchannel(self, ctx):
+        """Interact with or create new Text Channels."""
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
 
@@ -569,8 +565,10 @@ class Server(commands.Cog):
     #---A command group to allow Members to create, clone, view information about,
     #---see invites for, edit and delete VoiceChannels.
 
-    @commands.group(name='voicechannel', help='Interact with or create new Voice Channels.', aliases=['vc'])
+    @commands.hybrid_group("voicechannel")
+    @commands.guild_only()
     async def _voicechannel(self, ctx):
+        """Interact with or create new Voice Channels."""
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
 
@@ -648,8 +646,10 @@ class Server(commands.Cog):
     #---A command group to allow Members to create, clone, view information about, edit
     #---and delete CategoryChannels.
 
-    @commands.group(name='categorychannel', help='Interact with or create new Categories.', aliases=['category','cc'])
+    @commands.hybrid_group(name="category")
+    @commands.guild_only()
     async def _categorychannel(self, ctx):
+        """Interact with or create new Categories."""
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
 
@@ -704,57 +704,15 @@ class Server(commands.Cog):
         await ctx.send(f'Category {category.name} has been deleted.')
 
     #-----------------------------------------
-    #--A command group within a command group to
-    #--let users decide what type of channel
-    #--to add to the category.
-
-    @_categorychannel.group(name='createchannel', help='Creates a Text or Voice Channel in a Category.', aliases=['createnew','add'])
-    async def _categoryadd(self, ctx):
-        if ctx.invoked_subcommand is None:
-            raise commands.BadArgument("Invalid subcommand passed.")
-
-    @_categoryadd.command(name='textchannel', help='Creates a Text Channel in a Category.', aliases=['text','tc'])
-    async def _categoryaddtext(self, ctx: commands.Context, category:discord.CategoryChannel, name='text-channel', topic=None, slowmode_delay=None, position:int=None, nsfw:bool=None, *, reason=None):
-        #Check if the Text Channel requested is valid and can be created;
-        # - Is there a name more than 1 and less than 100 characters long?
-        # - Is the length of the topic less than 1024 characters long?
-        # - Is the slowmode delay valid and less than 6 hours?
-
-        if 1 < len(name) < 100: #This is the maximum limit for Text Channel names.
-            if topic is not None:
-                if len(topic) > 1024: #This is the maximum limit for Text Channel topics.
-                    await ctx.send("Please choose a channel topic that is 1024 or less characters in length.")
-
-            if slowmode_delay is not None:
-                if slowmode_delay < 0 or slowmode_delay > 21600: #This is the range that 'slowmode_delay' must be in.
-                    await ctx.send("Please choose a delay between 0 and 21600 seconds.")
-
-            c = await category.create_text_channel(name=name, position=position, slowmode_delay=slowmode_delay, nsfw=nsfw, topic=topic, reason=reason)
-            await ctx.send(f"Text Channel {c.mention} has been created in Category `{category.name}`!")
-        else:
-            await ctx.send("Please choose a name between 1 and 100 characters in length.")
-
-    @_categoryadd.command(name='voicechannel', help='Creates a Voice Channel in a Category.', aliases=['voice','vc'])
-    async def _categoryaddvoice(self, ctx: commands.Context, category:discord.CategoryChannel, name='Voice Channel', user_limit:int=None, bitrate:int=None, *, reason=None):
-        #Check if the Voice Channel requested is valid and can be created;
-        # - Is there a name more than 1 and less than 100 characters long?
-        # - Is the user limit valid? (TBA)
-        # - Is the bitrate valid? (TBA)
-
-        if 1 < len(name) < 100:
-            c = await ctx.guild.create_voice_channel(name=name, position=position, user_limit=user_limit, bitrate=bitrate, reason=reason)
-            await ctx.send(f"The voice channel {c.name} has been created in Category `{category.name}`!")
-        else:
-            await ctx.send("Please choose a name between 1 and 100 characters in length.")
-
-    #-----------------------------------------
     #---------------------------------------------------------------------------------
     #---A command group to create, get information about and delete Invites.
     #---'Invite' refers to a 'discord.gg/x' link where x is a hash that refers
     #---to a specific guild and channel that can be defined.
 
-    @commands.group(name='invite', help='Interact with or create new instant invites.')
+    @commands.hybrid_group(name="invite")
+    @commands.guild_only()
     async def _invite(self, ctx):
+        """Interact with or create new instant invites."""
         if ctx.invoked_subcommand is None:
             raise commands.BadArgument("Invalid subcommand passed.")
 
