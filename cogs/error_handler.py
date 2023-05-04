@@ -56,9 +56,6 @@ class CommandErrorHandler(commands.Cog):
         
         #-----------------------------------------------------------------------------
         # Default discord.py exceptions
-        elif isinstance(error, app_commands.CommandInvokeError):
-            return await ctx.send(f"❗ {str(error)}")
-
         elif isinstance(error, discord.Forbidden):
             return await ctx.send(f'❗ {ctx.author.mention}, I am not permitted to do that.')
 
@@ -78,8 +75,10 @@ class CommandErrorHandler(commands.Cog):
         elif isinstance(error, commands.BadArgument):
             if ctx.command.qualified_name == 'tags':
                 return await ctx.send('❗ I could not find that member. Please try again.')
-            else:
-                return await ctx.send(f"❗ {ctx.author.mention}, `{ctx.command}` failed due to a bad argument: `{error.args[0]}`")
+            return await ctx.send(f"❗ {ctx.author.mention}, `{ctx.command}` failed due to a bad argument: `{str(error.args)}`")
+
+        elif isinstance(error, commands.BotMissingPermissions):
+            return await ctx.send(f"❗ {ctx.author.mention}, I cannot do that: `{error.missing_perms}`")
 
         elif isinstance(error, commands.MissingPermissions):
             return await ctx.send(f"❗ {ctx.author.mention}, you need the following permissions to use this command: `{error.missing_perms}`")
@@ -92,13 +91,14 @@ class CommandErrorHandler(commands.Cog):
 
         elif isinstance(error, commands.NotOwner):
             return await ctx.send(f"❗ {ctx.author.mention}, you are not allowed to use this command.")
-
-        # YTDL Exceptions
-        elif isinstance(error, yt_dlp.utils.DownloadError):
-            return await ctx.send("No video results.")
         
+        elif isinstance(error, app_commands.CommandInvokeError):
+            if ctx.command.qualified_name in ["join", "play"]:
+                return await ctx.send("❗I am not permitted to join that voice channel.")
+            return await ctx.send(f"❗ {str(error)}")
+
         elif isinstance(error, commands.CommandError):
-            return await ctx.send('❗' + str(error))
+            return await ctx.send(f"❗ {str(error)}")
 
         #-----------------------------------------------------------------------------
         

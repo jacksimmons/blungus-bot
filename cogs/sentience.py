@@ -25,6 +25,7 @@ def get_message_content(msg):
             content += " " + atm.url
     return content
 
+
 class Sentience(commands.Cog):
     def __init__(self, bot):
         self.bot = bot

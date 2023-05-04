@@ -89,17 +89,6 @@ async def on_member_remove(member):
                     await member.guild.get_channel(theguild['channels']['welcome']).send(f'{member} [{member.mention}] defarted.')
                 except discord.Forbidden:
                     pass #Nothing we can do about this
-
-@bot.event
-@commands.has_guild_permissions(send_messages=True)
-async def on_message(message):
-    if isinstance(message.channel, discord.TextChannel) and message.author != bot.user:
-
-        #It can be assumed that if a member doesn't want the bot to talk in their channel, then they won't
-        #want commands to be able to be used from that channel.
-        await bot.process_commands(message)
-    else:
-        if "say" not in message.content:
-            await bot.process_commands(message)
+                
 
 asyncio.run(main())
