@@ -85,6 +85,7 @@ class Fun(commands.Cog):
     @_insults.command(name="remove")
     @app_commands.describe(index="The insult index to remove. Use `insult list` to see indices.")
     async def _remove_insult(self, ctx: commands.Context, user: discord.User, index: int):
+        """Removes an insult from the database by index."""
         contents: dict = {}
         with open("data/data.json", "r") as file:
             contents = json.load(file)
@@ -102,6 +103,7 @@ class Fun(commands.Cog):
     @_insults.command(name="list")
     @app_commands.describe(user="The user to list insults for.")
     async def _list_insults(self, ctx: commands.Context, user: discord.User):
+        """Shows all insults for a given user, and each insult's index."""
         data: dict = {}
         with open("data/data.json", "r") as file:
             content = json.load(file)
@@ -135,6 +137,7 @@ class Fun(commands.Cog):
     @app_commands.describe(user="The user this applies to.",
                            emoji="The emoji to react with on an insult (usually 💩).")
     async def _insult_emoji(self, ctx: commands.Context, user: discord.User, emoji: str):
+        """Sets the emoji which I will react with when insulting a given user."""
         try:
         # Try Custom
             discord.utils.get(self.bot.emojis, name=emoji)
