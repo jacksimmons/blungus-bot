@@ -34,6 +34,7 @@ class Misc(commands.Cog):
     @commands.hybrid_command(name="length")
     @app_commands.describe(message="The message to find the length of.")
     async def length_command(self, ctx: commands.Context, *, message: str):
+        """Displays the length of your message."""
         if len(message) <= 500:
             await ctx.send(f'"{message}" is {len(message)} characters long.')
         else:
@@ -41,16 +42,11 @@ class Misc(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='say',
-        description='Make the bot say something.',
-        aliases=['parrot','repeat','copy']
-    )
-
     @commands.hybrid_command(name="say")
     @app_commands.describe(message="The message to repeat.",
                            delete="Whether I should try and delete your message afterwards.")
     async def _say(self, ctx: commands.Context, *, message: str, delete: bool):
+        """Repeats your message."""
         await ctx.send(message)
         if delete:
             await ctx.message.delete()
