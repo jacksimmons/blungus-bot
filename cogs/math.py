@@ -1,6 +1,5 @@
 import math
 import sympy
-from decimal import Decimal
 import sympy
 from sympy.parsing.sympy_parser import\
 parse_expr, standard_transformations,\
@@ -50,7 +49,7 @@ class Math(commands.Cog):
     @app_commands.describe(num1="The first number.",
                            operator="The operator, e.g. +, -, *, /",
                            num2="The second number.")
-    async def _math2(self, ctx: commands.Context, num1: Decimal, operator: str, num2: Decimal):
+    async def _math2(self, ctx: commands.Context, num1: float, operator: str, num2: float):
         """Compatible operators: +, -, *, /, ^ (POW), % (MOD), // (DIV)"""
         if operator in operator_dict:
             if len(str(num1)) <= 30 and len(str(num2)) <= 30:
@@ -82,8 +81,8 @@ class Math(commands.Cog):
     @commands.hybrid_command(name="math1")
     @app_commands.describe(operator="The operator, e.g. +, -, ~, abs.",
                            x="The input in the calculation.")
-    async def _math1(self, ctx: commands.Context, operator: str, x: Decimal):
-        """Compatible operators: + (unary), - (unary), ~ (bitwise inversion), ceil, abs, !, floor, frexp, modf, trunc"""
+    async def _math1(self, ctx: commands.Context, operator: str, x: float):
+        """Compatible operators: + (unary), - (unary), ~ (bit invert), ceil, abs, !, floor, frexp, modf, trunc"""
         if operator in single_value_operator_dict:
             if len(str(x)) <= 30:
                 try:
