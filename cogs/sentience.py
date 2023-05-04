@@ -2,6 +2,8 @@ import discord
 import random
 import csv
 import json
+
+from discord import app_commands
 from discord.ext import commands
 
 registered_inputs = []
@@ -27,8 +29,10 @@ def get_message_content(msg):
 
 
 class Sentience(commands.Cog):
+
     def __init__(self, bot):
         self.bot = bot
+
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -88,9 +92,12 @@ class Sentience(commands.Cog):
                         response.replace('@here', '@ here')
                         await message.channel.send(response)
 
+
     @commands.guild_only()
-    @commands.command(name='setchatchannel', help='Sets the channel that the bot will respond to your messages in.')
-    async def _setchatchannel(self, ctx: commands.Context, channel_id:int):
+    @commands.hybrid_command(name="setchatchannel")
+    @app_commands.describe(channel="The channel to set as the chat channel.")
+    async def _setchatchannel(self, ctx: commands.Context, channel: discord.TextChannel):
+        """Sets the channel which the bot will respond to messages in."""
         with open('data/guilds.json', 'r+') as f:
             #Sources: [1] https://stackoverflow.com/questions/13265466/read-write-mode-python
             #         [2] https://stackoverflow.com/questions/21035762/python-read-json-file-and-modify
@@ -103,21 +110,24 @@ class Sentience(commands.Cog):
             if str(guild_id) in data:
                 if 'channels' not in data[str(guild_id)]:
                     data[str(guild_id)]['channels'] = {}
-                data[str(guild_id)]['channels']['chatbot'] = channel_id
+                data[str(guild_id)]['channels']['chatbot'] = channel.id
 
             else:
                 data[str(guild_id)] = {}
                 data[str(guild_id)]['channels'] = {}
-                data[str(guild_id)]['channels']['chatbot'] = channel_id
+                data[str(guild_id)]['channels']['chatbot'] = channel.id
 
             json.dump(data, f, indent=4)
 
             f.truncate() #Remove remaining part
 
-        await ctx.send(f'Chat channel has been set to {self.bot.get_channel(channel_id).mention}!')
+        await ctx.send(f'Chat channel has been set to {channel.mention}!')
 
-    @commands.command(name='removechatchannel', help='Removes the channel that the bot previously used for responding to your messages in, if there was one.')
+
+    @commands.guild_only()
+    @commands.hybrid_command(name="disablechatchannel")
     async def _removechatchannel(self, ctx):
+        """Removes the chat channel, if there is one."""
         with open('data/guilds.json', 'r+') as f: #Determines speaking_zone value; this is set to 0 if a channel was not found in 'guilds.json'
             #Using 'r+' mode to allow writing and reading to the file.
             #Sources: see '_setchatchannel' (above)
@@ -138,18 +148,19 @@ class Sentience(commands.Cog):
 
         await ctx.send('Chat channel disabled.')
 
-    @commands.guild_only()
-    @commands.command(name='feed', help='Feeds the bot all of the inputs and responses from a specific channel.')
-    @commands.is_owner()
-    async def _feed(self, ctx: commands.Context, channel_id:int, limit:int=None):
-        target = self.bot.get_channel(channel_id)
-        await ctx.send(f"Preparing feast from {target.mention}.")
 
-        messages = [message async for message in target.history(limit=limit)]
+    @commands.guild_only()
+    @commands.hybrid_command(name="feed")
+    @commands.is_owner()
+    async def _feed(self, ctx: commands.Context, channel: discord.TextChannel, limit:int=None):
+        """Consumes every message and response in a given channel."""
+        await ctx.send(f"Preparing feast from {channel.mention}.")
+
+        messages = [message async for message in channel.history(limit=limit)]
         messages.reverse()
         read_messages = []
 
-        await ctx.send(f"Feast has been prepared. Feeding from channel {target.mention}.")
+        await ctx.send(f"Feast has been prepared. Feeding from channel {channel.mention}.")
         reading_msg = await ctx.send("Reading messages from chat...")
 
         for i in range(0, len(messages)):
@@ -180,6 +191,7 @@ class Sentience(commands.Cog):
 
         await writing_msg.edit(content="Writing messages... **Done**")
         await ctx.send("Feeding complete.")
+
 
 async def setup(bot):
     await bot.add_cog(Sentience(bot))
