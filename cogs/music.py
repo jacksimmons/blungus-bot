@@ -133,8 +133,9 @@ class Music(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.hybrid_command(name="join")
-    async def _join(self, ctx: commands.Context,):
+    async def _join(self, ctx: commands.Context):
         """Joins your voice channel."""
+        await ctx.defer()
         if ctx.author.voice is not None:
             choice: str = random.choice(join_messages)
             if ctx.voice_client is not None:
