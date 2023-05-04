@@ -121,8 +121,8 @@ class Info(commands.Cog):
         await ctx.send(embed=embed)
 
 
-    @commands.hybrid_command(name="serverinfo+")
-    async def _server_info_plus(self, ctx: commands.Context):
+    @commands.hybrid_command(name="advancedserverinfo")
+    async def _advanced_server_info(self, ctx: commands.Context):
         """The server info command, but more detailed."""
         #This variable (ctx.guild) is used a lot, so this helps simplify the code below
         g: discord.Guild = ctx.guild

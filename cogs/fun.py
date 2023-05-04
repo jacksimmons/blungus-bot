@@ -12,6 +12,72 @@ MAX_EMOJI = 20
 # (num_chars) / INSULT_RANDOM_LIMIT chance of being insulted.
 INSULT_RANDOM_LIMIT = 1000
 
+
+class RPSView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.my_score = 0
+        self.your_score = 0
+
+
+    @discord.ui.select(
+        placeholder = "Pick a move...", # the placeholder text that will be displayed if nothing is selected
+        min_values = 1, # the minimum number of values that must be selected by the users
+        max_values = 1, # the maximum number of values that can be selected by the users
+        options = [ # the list of options from which users can choose, a required field
+            discord.SelectOption(
+                label="🪨",
+                value="Rock",
+                description="Rock"
+            ),
+            discord.SelectOption(
+                label="📄",
+                value="Paper",
+                description="Paper"
+            ),
+            discord.SelectOption(
+                label="✂️",
+                value="Scissors",
+                description="Scissors"
+            )
+        ]
+    )
+    async def callback(self, interaction: discord.Interaction, select: discord.ui.Select):
+        your_move = select.values[0]
+        my_move = random.choice(["Rock", "Paper", "Scissors"])
+        outcome = 0
+        if (your_move == "Rock"):
+            if (my_move == "Paper"):
+                outcome = 1
+            elif (my_move == "Scissors"):
+                outcome = -1
+        elif (your_move == "Paper"):
+            if (my_move == "Scissors"):
+                outcome = 1
+            elif (my_move == "Rock"):
+                outcome = -1
+        else:
+            if (my_move == "Rock"):
+                outcome = 1
+            elif (my_move == "Paper"):
+                outcome = -1
+
+        output = ""
+        if outcome == 1:
+            output = "I win."
+            self.my_score += 1
+        elif outcome == 0:
+            output = "It's a draw."
+            self.my_score += 0.5
+            self.your_score += 0.5
+        else:
+            output = "You win."
+            self.your_score += 1
+
+        await interaction.message.edit(content=f"Rock Paper Scissors\nWins - You: {str(self.your_score)}, Me: {str(self.my_score)}")
+        await interaction.response.send_message(content=f"You played {select.values[0]}.\nI played {my_move}.\n{output}", ephemeral=True)
+
+
 class VoteDropdown(discord.ui.Select):
     def __init__(self, title, fields):
         self.fields = [discord.SelectOption(label=field) for field in fields]
@@ -177,6 +243,7 @@ class Fun(commands.Cog):
         await message.add_reaction('👍')
         await message.add_reaction('👎')
     
+    
     @commands.hybrid_command(name="vote")
     @app_commands.describe(
         title="The title of the voting panel.",
@@ -202,6 +269,7 @@ don't get picked up as multiple options.\n For example, your options were\
         for i in range(0, len(fields)):
             await message.add_reaction(emoji[i])
     
+
     @commands.hybrid_command(name="ddvote")
     @app_commands.describe(
         title="The title of the voting panel.",
@@ -213,6 +281,7 @@ don't get picked up as multiple options.\n For example, your options were\
         view.add_item(VoteDropdown(title, space_separated_choices.split(" ")))
         await ctx.send("Pick an option:", view=view)
 
+
     @commands.hybrid_command(name="uservote")
     @app_commands.describe(
         title="The title of the voting panel."
@@ -222,6 +291,13 @@ don't get picked up as multiple options.\n For example, your options were\
         view = View()
         view.add_item(UserDropdown(title))
         await ctx.send("Pick a user:", view=view)
+    
+
+    @commands.hybrid_command(name="rockpaperscissors")
+    async def _rock_paper_scissors(self, ctx: commands.Context):
+        """Plays an interactive game of rock-paper-scissors."""
+        view = RPSView()
+        await ctx.send("Rock Paper Scissors", view=view, ephemeral=False)
 
 
 async def setup(bot: commands.Bot):
