@@ -52,7 +52,6 @@ class Sentience(commands.Cog):
                     reader = csv.reader(f, delimiter=",", quotechar="|")
                     for row in reader:
                         if row != []:
-                            print(row)
                             messages.append(row[0])
                             responses.append(row[1])
 

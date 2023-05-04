@@ -4,9 +4,13 @@ from discord.ext import commands
 from discord.ext.commands import Greedy, Context
 from discord.ui import View, Modal
 
+import random
+import json
+
 emoji = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟","🆑","🆎","🅾️","🆘","❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","💯","💢","♨️","❗️","❓","‼️","⁉️","🔅","〽️","⚠️","🚸","🔱","⚜️","➡️","⬅️","⬆️","⬇️","↗️","↘️","↙️","↖️","↪️","↩️","🔄","🎵","🔴","🟠","🟡","🟢","🔵","🟣","⚫️","⚪️","🔔","📢","♾️"]
 MAX_EMOJI = 20
-
+# (num_chars) / INSULT_RANDOM_LIMIT chance of being insulted.
+INSULT_RANDOM_LIMIT = 1000
 
 class VoteDropdown(discord.ui.Select):
     def __init__(self, title, fields):
@@ -28,7 +32,132 @@ class UserDropdown(discord.ui.UserSelect):
 class Fun(commands.Cog):
 
     def __init__(self, bot):
-        self.bot:commands.Bot = bot
+        self.bot: commands.Bot = bot
+
+    #---------------------------------------------------------------------------------
+    # INSULTS
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if (message.author.id == self.bot.user.id):
+            return
+
+        if len(message.content) > INSULT_RANDOM_LIMIT or random.randint(INSULT_RANDOM_LIMIT) < len(message.content):
+            with open("data/data.json", "r") as file:
+                str_id = str(message.author.id)
+                if (str_id in json.load(file)["insults"]):
+                    with open("data/data.json", "r") as file:
+                        try:
+                            data = json.load(file)
+                            insult = random.choice(data["insults"][str_id]["messages"])
+                            await message.channel.send(insult)
+                            emoji: str = data["insults"][str_id]["emoji"]
+                            await message.add_reaction(emoji)
+                        except Exception as e:
+                            print(e)
+
+
+    @commands.hybrid_group(name="insult")
+    async def _insults(self, ctx):
+        """Handles the messages sent when a particular user speaks, which 'insult' them."""
+        if ctx.invoked_subcommand is None:
+            raise commands.BadArgument("Invalid subcommand passed.")
+        
+
+    @_insults.command(name="add")
+    @app_commands.describe(message="The message to add.",
+                           user="The user to 'insult'.")
+    async def _add_insult(self, ctx: commands.Context, user: discord.User, *, message:str):
+        """Adds an insult to the database."""
+        contents: dict = {}
+        with open("data/data.json", "r") as file:
+            contents = json.load(file)
+            if (str(user.id) not in contents["insults"]):
+                contents["insults"][str(user.id)] = {"emoji": str(ord("💩")), "messages": [message]}
+            else:
+                contents["insults"][str(user.id)]["messages"].append(message)
+
+        with open("data/data.json", "w") as file:
+            json.dump(contents, file, indent=4)
+        await ctx.send(f"Added insult `{message}` for user `{user.name}`.")
+
+
+    @_insults.command(name="remove")
+    @app_commands.describe(index="The insult index to remove. Use `insult list` to see indices.")
+    async def _remove_insult(self, ctx: commands.Context, user: discord.User, index: int):
+        contents: dict = {}
+        with open("data/data.json", "r") as file:
+            contents = json.load(file)
+            try:
+                insult = contents["insults"][str(user.id)]["messages"][index]
+                await ctx.send("No more " + insult + "...")
+                del insult
+            except:
+                await ctx.send("Invalid insult index or user.")
+
+        with open("data/data.json", "w") as file:
+            json.dump(contents, file, indent=4)
+
+
+    @_insults.command(name="list")
+    @app_commands.describe(user="The user to list insults for.")
+    async def _list_insults(self, ctx: commands.Context, user: discord.User):
+        data: dict = {}
+        with open("data/data.json", "r") as file:
+            content = json.load(file)
+            if str(user.id) in content["insults"]:
+                data = content["insults"][str(user.id)]
+            else:
+                await ctx.send(f"`{user.name}` has no insults.")
+                return
+
+        emoji = ""
+        if "emoji" in data:
+            emoji = data["emoji"]
+        
+        insults = None
+        if "messages" in data:
+            insults = data["messages"]
+
+        embed = discord.Embed(color=0x00ff00)
+        embed.set_author(name=f"{user.name} {emoji}")
+
+        if insults:
+            for insult in insults:
+                embed.add_field(name=insults.index(insult), value=insult, inline=True)
+        else:
+            embed.add_field(name="Insults", value="User has no insults.")
+
+        await ctx.send(embed=embed)
+
+
+    @_insults.command(name="emoji")
+    @app_commands.describe(user="The user this applies to.",
+                           emoji="The emoji to react with on an insult (usually 💩).")
+    async def _insult_emoji(self, ctx: commands.Context, user: discord.User, emoji: str):
+        try:
+        # Try Custom
+            discord.utils.get(self.bot.emojis, name=emoji)
+        except:
+            try:
+            # Try Unicode
+                emoji = "\\" + emoji
+                discord.utils.get(self.bot.emojis, name=emoji)
+            except Exception as e:
+                print(e)
+                raise commands.EmojiNotFound(emoji)
+
+        with open("data/data.json", "r") as file:
+            data = json.load(file)
+            if str(user.id) not in data["insults"]:
+                data["insults"][str(user.id)] = {"emoji": emoji, "messages": []}
+            else:
+                data["insults"][str(user.id)]["emoji"] = emoji
+
+        with open("data/data.json", "w") as file:
+            json.dump(data, file, indent=4)
+
+        await ctx.send(f"Set emoji for user `{user.name}` to `{emoji}`")
 
     #---------------------------------------------------------------------------------
 

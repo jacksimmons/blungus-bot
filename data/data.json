@@ -1,32 +1,25 @@
 {
-    "trolliliyan": {
-        "insults": [
-            "You fucking stinky Bulgarian",
-            "SOY BOY",
-            "TWO SEVENS",
-            "Your dad has a wonky eye lol",
-            "Libya, you were born in Libya.",
-            "Your mum poo pooed in a bucket",
-            "Your breath stinks of chicken tikka",
-            "Greasy man",
-            "8 in Physics lololol",
-            "Sillywankstain Bentcock",
-            "Mfw Iliyan doesn't shower for 5 days",
-            "The bus walked away from me like a mother in denial of her child's death \ud83d\ude24",
-            "Smelly",
-            "Egg Mayo on Bread",
-            "How are the Impostor Ribs?",
-            "You got me",
-            "NHS how to wank",
-            "You like young girls",
-            "sniffs mmm that was a nice 30 minute shit while playing Tetris while my mum waits outside and has to shit in a bucket. Time for a fat wank. Let me just stare at my cock. NHS how do I wank? Oh no I'm running late... I sure hope the bus doesn't walk away from me like a mother in denial of her child's death."
-        ],
-        "enabled": true,
-        "slappers": []
-    },
-    "guictx": {
-        "guild": 556927802180501526,
-        "channel": 1010210119813972130,
-        "author": 354995879565852672
+    "insults": {
+        "354995879565852672": {
+            "emoji": "\ud83d\udcfa",
+            "messages": [
+                "just a guy"
+            ]
+        },
+        "267395298370781194": {
+            "emoji": "\ud83e\udd16",
+            "messages": []
+        },
+        "487911834666663939": {
+            "emoji": "\ud83e\uddc0",
+            "messages": []
+        },
+        "159985870458322944": {
+            "emoji": "\ud83e\udd16",
+            "messages": [
+                "/ban <@159985870458322944>",
+                "Brilliant contribution"
+            ]
+        }
     }
 }
