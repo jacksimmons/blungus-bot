@@ -76,7 +76,7 @@ class CommandErrorHandler(commands.Cog):
 
         # For this error example we check to see where it came from...
         elif isinstance(error, commands.BadArgument):
-            if ctx.command.qualified_name == 'tag list':  # Check if the command being invoked is 'tag list'
+            if ctx.command.qualified_name == 'tags':
                 return await ctx.send('❗ I could not find that member. Please try again.')
             else:
                 return await ctx.send(f"❗ {ctx.author.mention}, `{ctx.command}` failed due to a bad argument: `{error.args[0]}`")

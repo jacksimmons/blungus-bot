@@ -98,16 +98,6 @@ async def on_message(message):
         #It can be assumed that if a member doesn't want the bot to talk in their channel, then they won't
         #want commands to be able to be used from that channel.
         await bot.process_commands(message)
-
-        #This is to prevent spam of the discord API (invalid requests being sent)
-        if message.author.id == 267395298370781194:
-            with open("data/data.json", "r") as file:
-                try:
-                    insult = random.choice(json.load(file)["trolliliyan"]["insults"])
-                    await message.channel.send(insult)
-                    await message.add_reaction("💩")
-                except:
-                    pass
     else:
         if "say" not in message.content:
             await bot.process_commands(message)
