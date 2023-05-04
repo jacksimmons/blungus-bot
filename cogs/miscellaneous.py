@@ -9,15 +9,12 @@ class Misc(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='ping',
-        description='The ping command',
-        aliases=[]
-    )
-
+    @commands.hybrid_command(name="ping")
     async def ping_command(self, ctx):
+        """Used to display connection latency."""
         start = d.timestamp(d.now())
         # Gets the timestamp when the command was used
 
@@ -34,12 +31,8 @@ class Misc(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='length',
-        description='Tells you how many characters long your message is.',
-        aliases=['len']
-    )
-
+    @commands.hybrid_command(name="length")
+    @app_commands.describe(message="The message to find the length of.")
     async def length_command(self, ctx: commands.Context, *, message: str):
         if len(message) <= 500:
             await ctx.send(f'"{message}" is {len(message)} characters long.')
@@ -54,11 +47,16 @@ class Misc(commands.Cog):
         aliases=['parrot','repeat','copy']
     )
 
-    async def say_command(self, ctx: commands.Context, *, message: str):
+    @commands.hybrid_command(name="say")
+    @app_commands.describe(message="The message to repeat.",
+                           delete="Whether I should try and delete your message afterwards.")
+    async def _say(self, ctx: commands.Context, *, message: str, delete: bool):
         await ctx.send(message)
-        await ctx.message.delete()
+        if delete:
+            await ctx.message.delete()
 
     #---------------------------------------------------------------------------------
+
 
 async def setup(bot):
     await bot.add_cog(Misc(bot))

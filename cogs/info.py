@@ -10,17 +10,12 @@ class Info(commands.Cog):
         self.bot = bot
 
     #---------------------------------------------------------------------------------
-
-    @commands.command(
-        name='memberinfo',
-        description='Returns some basic information about a member in this guild.',
-        aliases=['userinfo','whois']
-    )
-
     # Member mention: <@id>
     # Role mention: <@&id>
     # Channel mention: <#id>
+    @commands.hybrid_command(name="memberinfo")
     async def member_info(self, ctx: commands.Context, member: discord.Member):
+        """Displays various information about the given server member."""
         roles = None
         perms = None
         user_flags = None
@@ -100,13 +95,9 @@ class Info(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='guildinfo',
-        description='Returns some basic info about this guild.',
-        aliases=['serverinfo']
-    )
-
-    async def guildinfo_command(self, ctx):
+    @commands.hybrid_command(name="serverinfo")
+    async def _server_info(self, ctx):
+        """Displays various information about the current server."""
         guild: discord.Guild = ctx.guild
 
         embed = discord.Embed(color=0x00ff00)
@@ -129,13 +120,10 @@ class Info(commands.Cog):
         embed.add_field(name="Premium Tier", value=str(guild.premium_tier))
         await ctx.send(embed=embed)
 
-    @commands.command(
-        name='advancedguildinfo',
-        help='''Gives you a large amount of available information about this guild.
-        Note: it is recommended to use this in a private channel to prevent any unwanted information being seen by normal users.''',
-        aliases=['agi','asi']
-    )
-    async def advanced_guild_info(self, ctx):
+
+    @commands.hybrid_command(name="serverinfo+")
+    async def _server_info_plus(self, ctx: commands.Context):
+        """The server info command, but more detailed."""
         #This variable (ctx.guild) is used a lot, so this helps simplify the code below
         g: discord.Guild = ctx.guild
 
@@ -235,6 +223,7 @@ class Info(commands.Cog):
         inline=False)
 #send the embed
         await ctx.send(embed=embed)
+
 
 async def setup(bot):
     await bot.add_cog(Info(bot))
