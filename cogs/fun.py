@@ -113,14 +113,12 @@ class Fun(commands.Cog):
                 str_id = str(message.author.id)
                 if (str_id in json.load(file)["insults"]):
                     with open("data/data.json", "r") as file:
-                        try:
-                            data = json.load(file)
-                            insult = random.choice(data["insults"][str_id]["messages"])
-                            await message.channel.send(insult)
+                        data = json.load(file)
+                        insult = random.choice(data["insults"][str_id]["messages"])
+                        await message.channel.send(insult)
+                        if "emoji" in data["insults"][str_id]:
                             emoji: str = data["insults"][str_id]["emoji"]
                             await message.add_reaction(emoji)
-                        except Exception as e:
-                            print(e)
 
 
     @commands.hybrid_group(name="insult")
