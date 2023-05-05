@@ -4,6 +4,8 @@ from discord.ext import commands
 from discord.ext.commands import Greedy, Context
 from discord.ui import View, Modal
 
+import requests
+from requests import Response
 import random
 import json
 
@@ -115,10 +117,13 @@ class Fun(commands.Cog):
                     with open("data/data.json", "r") as file:
                         data = json.load(file)
                         insult = random.choice(data["insults"][str_id]["messages"])
-                        await message.channel.send(insult)
-                        if "emoji" in data["insults"][str_id]:
-                            emoji: str = data["insults"][str_id]["emoji"]
-                            await message.add_reaction(emoji)
+                        try:
+                            await message.channel.send(insult)
+                            if "emoji" in data["insults"][str_id]:
+                                emoji: str = data["insults"][str_id]["emoji"]
+                                await message.add_reaction(emoji)
+                        except Exception as e:
+                            print("Could not complete insult :(")
 
 
     @commands.hybrid_group(name="insult")
@@ -268,34 +273,54 @@ don't get picked up as multiple options.\n For example, your options were\
             await message.add_reaction(emoji[i])
     
 
-    @commands.hybrid_command(name="ddvote")
-    @app_commands.describe(
-        title="The title of the voting panel.",
-        space_separated_choices="The dropdown choices, separated by spaces. Use quotation marks for multiple-word choices."
-    )
-    async def _dropdown_vote(self, ctx: commands.Context, title: str, *, space_separated_choices: str):
-        """Makes a dropdown voting system."""
-        view = View()
-        view.add_item(VoteDropdown(title, space_separated_choices.split(" ")))
-        await ctx.send("Pick an option:", view=view)
-
-
-    @commands.hybrid_command(name="uservote")
-    @app_commands.describe(
-        title="The title of the voting panel."
-    )
-    async def _dropdown_user_vote(self, ctx: commands.Context, title: str):
-        """Makes a dropdown voting system."""
-        view = View()
-        view.add_item(UserDropdown(title))
-        await ctx.send("Pick a user:", view=view)
-    
-
     @commands.hybrid_command(name="rockpaperscissors")
     async def _rock_paper_scissors(self, ctx: commands.Context):
         """Plays an interactive game of rock-paper-scissors."""
         view = RPSView()
         await ctx.send("Rock Paper Scissors", view=view, ephemeral=False)
+
+    #---------------------------------------------------------------------------------
+    # API COMMANDS
+    
+    @commands.hybrid_command(name="agify")
+    @app_commands.describe(name="The name to give the 'age' of.")
+    async def _agify(self, ctx: commands.Context, name: str):
+        """Estimates the age of a person with the given name."""
+        try:
+            response: Response = requests.get("https://api.agify.io/" + "?name=" + name)
+            age = response.json()["age"]
+            await ctx.send(f"The age of the name `{name}` is `{str(age)}`.")
+        except:
+            await ctx.send("Request failed.")
+
+
+    @commands.hybrid_command(name="genderise")
+    @app_commands.describe(name="The name to give the 'gender' of.")
+    async def _genderise(self, ctx: commands.Context, name: str):
+        """Calculates the gender of a person with the given name."""
+        try:
+            response: Response = requests.get("https://api.genderize.io/" + "?name=" + name)
+            data = response.json()
+            gender = data["gender"]
+            probability = data["probability"]
+            await ctx.send(f"The gender of the name `{name}` is `{gender}` with probability `{probability}`.")
+        except:
+            await ctx.send("Request failed.")
+    
+
+    @commands.hybrid_command(name="nationalise")
+    @app_commands.describe(name="The name to give the 'nationality' of.")
+    async def _nationalise(self, ctx: commands.Context, name: str):
+        """Calculates the nationality of a person with the given name."""
+        try:
+            response: Response = requests.get("https://api.nationalize.io/" + "?name=" + name)
+            data = response.json()
+            output = ""
+            for country in data["country"]:
+                output += country["country_id"] + f", Probability `{country['probability']}`\n"
+            await ctx.send(f"`{name}` belongs to the following nationalities: \n{output}")
+        except:
+            await ctx.send("Request failed.")
 
 
 async def setup(bot: commands.Bot):
