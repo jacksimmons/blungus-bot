@@ -291,7 +291,7 @@ don't get picked up as multiple options.\n For example, your options were\
             age = response.json()["age"]
             await ctx.send(f"The age of the name `{name}` is `{str(age)}`.")
         except:
-            await ctx.send("Request failed.")
+            await ctx.send("Request failed. Note: This api has a limit of `1000` uses per day.")
 
 
     @commands.hybrid_command(name="genderise")
@@ -305,7 +305,7 @@ don't get picked up as multiple options.\n For example, your options were\
             probability = data["probability"]
             await ctx.send(f"The gender of the name `{name}` is `{gender}` with probability `{probability}`.")
         except:
-            await ctx.send("Request failed.")
+            await ctx.send("Request failed. Note: This api has a limit of `1000` uses per day.")
     
 
     @commands.hybrid_command(name="nationalise")
@@ -320,7 +320,7 @@ don't get picked up as multiple options.\n For example, your options were\
                 output += country["country_id"] + f", Probability `{country['probability']}`\n"
             await ctx.send(f"`{name}` belongs to the following nationalities: \n{output}")
         except:
-            await ctx.send("Request failed.")
+            await ctx.send("Request failed. Note: This api has a limit of `1000` uses per day.")
 
 
 async def setup(bot: commands.Bot):
