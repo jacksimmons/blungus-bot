@@ -57,7 +57,10 @@ class CommandErrorHandler(commands.Cog):
         #-----------------------------------------------------------------------------
         # Default discord.py exceptions
         elif isinstance(error, discord.Forbidden):
-            return await ctx.send(f'❗ {ctx.author.mention}, I am not permitted to do that.')
+            try:
+                return await ctx.send(f'❗ {ctx.author.mention}, I am not permitted to do that.')
+            except:
+                print(f"{ctx.command}: No send message permissions.")
 
         elif isinstance(error, discord.HTTPException):
             if error.text == 'Invalid Form Body\nIn nick: Must be 32 or fewer in length.':

@@ -64,7 +64,7 @@ async def on_ready():
     print(f'Latency: {bot.latency}')
     print(f'Created at: {bot.user.created_at.hour}:{bot.user.created_at.minute} {bot.user.created_at.day}/{bot.user.created_at.month}/{bot.user.created_at.year}')
     print('---Ready---')
-    await bot.change_presence(activity=discord.Activity(name=f'{(math.pi*(len(bot.users)**2))} chungi', status=discord.Status.idle, type=discord.ActivityType.watching))
+    await bot.change_presence(activity=discord.Activity(name=f'{len(bot.users)} chungi', status=discord.Status.idle, type=discord.ActivityType.watching))
 
 @bot.event
 async def on_member_join(member):
