@@ -50,11 +50,11 @@ async def load_extensions():
         await bot.load_extension(cog)
 
 # Start the bot (load extensions, then start the bot)
-async def main():
+async def main(token: str):
     async with bot:
         await load_extensions()
         dotenv.load_dotenv()
-        token = str(os.getenv("TOKEN"))
+
         await bot.start(token, reconnect=True)
 
 @bot.event
@@ -69,26 +69,32 @@ async def on_ready():
 @bot.event
 async def on_member_join(member):
     with open('data/guilds.json', 'r') as file:
-        theguild = json.load(file)[str(member.guild.id)]
+        guild = json.load(file)[str(member.guild.id)]
 
-        if 'channels' in theguild:
-            if 'welcome' in theguild['channels']:
+        if 'channels' in guild:
+            if 'welcome' in guild['channels']:
                 try:
-                    await member.guild.get_channel(theguild['channels']['welcome']).send(f'{member} [{member.mention}] farted.')
+                    await member.guild.get_channel(guild['channels']['welcome']).send(f'{member} [{member.mention}] joined.')
                 except discord.Forbidden:
                     pass #Nothing we can do about this
 
 @bot.event
 async def on_member_remove(member):
     with open('data/guilds.json', 'r') as file:
-        theguild = json.load(file)[str(member.guild.id)]
+        guild = json.load(file)[str(member.guild.id)]
 
-        if 'channels' in theguild:
-            if 'welcome' in theguild['channels']: #Not required but included just in case
+        if 'channels' in guild:
+            if 'welcome' in guild['channels']: #Not required but included just in case
                 try:
-                    await member.guild.get_channel(theguild['channels']['welcome']).send(f'{member} [{member.mention}] defarted.')
+                    await member.guild.get_channel(guild['channels']['welcome']).send(f'{member} [{member.mention}] left.')
                 except discord.Forbidden:
                     pass #Nothing we can do about this
 
 
-asyncio.run(main())
+# Entry Point
+if __name__ == "__main__":
+    token = os.getenv("TOKEN")
+    if token is None:
+        print("No token provided. See README for more info.")
+    else:
+        asyncio.run(main(token))
