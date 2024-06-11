@@ -1,5 +1,6 @@
 pyvenv.cfg
 Lib/*
+Scripts/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
