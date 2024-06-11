@@ -53,8 +53,6 @@ async def load_extensions():
 async def main(token: str):
     async with bot:
         await load_extensions()
-        dotenv.load_dotenv()
-
         await bot.start(token, reconnect=True)
 
 @bot.event
@@ -93,6 +91,7 @@ async def on_member_remove(member):
 
 # Entry Point
 if __name__ == "__main__":
+    dotenv.load_dotenv()
     token = os.getenv("TOKEN")
     if token is None:
         print("No token provided. See README for more info.")
