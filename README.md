@@ -12,4 +12,4 @@ Run the program:
 python main.py  
 
 Add the application to a Discord server (App:Installation).
-Interact with the bot with slash commands (start a message with "/"), or ! commands (start a message with "!", use "!help" for documentation).  
+Now you can interact with the bot with slash commands (start a message with "/"), or ! commands (start a message with "!", use "!help" for documentation).  
