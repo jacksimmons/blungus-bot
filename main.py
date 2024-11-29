@@ -3,10 +3,10 @@ import discord
 import json
 import os
 import dotenv
-import math
 
 from datetime import datetime as d
 from discord.ext import commands
+from loguru import logger
 
 # Set the starting timestamp.
 start = d.timestamp(d.now())
@@ -23,7 +23,7 @@ cogs = [
     'cogs.music',
     'cogs.sentience',
     'cogs.server'
-    ]
+]
 
 # The intents of the bot - what it intends to do.
 intents = discord.Intents.all()
@@ -57,11 +57,10 @@ async def main(token: str):
 
 @bot.event
 async def on_ready():
-    print(f'Load time: {( d.timestamp( d.now() ) - start ) } seconds.')
-    print(f'Logged in as {bot.user} [id: {bot.user.id}]')
-    print(f'Latency: {bot.latency}')
-    print(f'Created at: {bot.user.created_at.hour}:{bot.user.created_at.minute} {bot.user.created_at.day}/{bot.user.created_at.month}/{bot.user.created_at.year}')
-    print('---Ready---')
+    logger.info(f'Logged in as user {bot.user} [ID: {bot.user.id}]')
+    logger.info(f'User created at: {bot.user.created_at.hour}:{bot.user.created_at.minute} {bot.user.created_at.day}/{bot.user.created_at.month}/{bot.user.created_at.year}')
+    logger.info(f'Load time: {( d.timestamp( d.now() ) - start ) }s.')
+    logger.info(f'Latency: {bot.latency}s.')
     await bot.change_presence(activity=discord.Activity(name=f'{len(bot.users)} chungi', status=discord.Status.idle, type=discord.ActivityType.watching))
 
 @bot.event

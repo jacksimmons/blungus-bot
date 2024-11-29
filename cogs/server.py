@@ -3,8 +3,6 @@ import json
 
 from typing import List
 from discord.ext import commands
-from discord import ActionRow, Button, SelectMenu, SelectOption
-from discord.ui import View
 
 from base import Base
 

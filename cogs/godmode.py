@@ -2,15 +2,12 @@
 import discord
 
 from typing import Literal, Optional
+from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Greedy, Context
 
 import json
 
-from base import Base
-
-min_messages = 1
-max_messages = 10
 
 class Godmode(commands.Cog):
 
@@ -19,14 +16,18 @@ class Godmode(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='setstatus',
-        description='Changes the bot\'s discord presence [may take a while]',
-        aliases=['setpresence']
-    )
-
+    @commands.hybrid_command(name="setpresence")
+    @app_commands.describe(status = "The message displayed on the bot's profile. E.g. 'Verbing [x]'",
+                           activity_type = "The activity type displayed with the status. E.g. '[Verbing] x'",
+                           name = "The name of the activity.",
+                           url = "Optional URL which can be provided for activites like 'streaming'.")
     @commands.is_owner()
-    async def set_status(self, ctx: Context, status:str, activity_type:str, name:str, url:str=None):
+    async def set_presence(self, ctx: Context,
+                           status:str,
+                           activity_type:Literal['playing', 'streaming', 'watching', 'listening', 'competing', 'custom'],
+                           name:str,
+                           url:str=None):
+        'Changes the bot\'s discord presence [may take a while]'
         if activity_type == "playing":
             final_activity_type = discord.ActivityType.playing
         elif activity_type == "streaming":
@@ -44,123 +45,98 @@ class Godmode(commands.Cog):
         
         await self.bot.change_presence(status=status, activity=discord.Activity(name=name, type=final_activity_type, url=url))
 
+
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='setgame',
-        description='Sets the bot\'s current game and its details.',
-        aliases=[]
-    )
 
+    @commands.hybrid_command(name='setstream')
+    @app_commands.describe(url = "The URL of the stream.",
+                           name = "The name of the stream.",
+                           game = "The name of the game being streamed.")
     @commands.is_owner()
-    async def set_game(self, ctx: Context, name: str): #try to add start and end
+    async def set_stream(self, ctx: Context, url: str, name: str=None, game: str=None):
+        '''Sets the bot\'s current stream and its details.'''
+        await self.bot.change_presence(activity=discord.Streaming(name=name, game=game, url=url))
+
+
+    #---------------------------------------------------------------------------------
+
+    @commands.hybrid_command(name='setgame')
+    @app_commands.describe(name = "The name of the game to set as being played.")
+    @commands.is_owner()
+    async def set_game(self, ctx: Context, name: str): #@todo try to add start and end
         await self.bot.change_presence(activity=discord.Game(name=name))
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='setstream',
-        description='''Sets the bot\'s current stream and its details.
-        This will default to an empty activity when a twitch.tv url is not passed.''',
-        aliases=[]
-    )
-
+    @commands.hybrid_command(name='createguild')
+    @app_commands.describe(name = "Name of the guild.", icon = "An image for the guild's icon.")
     @commands.is_owner()
-    async def set_stream(self, ctx: Context, name: str,  url: str=None, details: str=None, twitch_name: str=None):
-        await self.bot.change_presence(activity=discord.Streaming(name=name, details=details, url=url, twitch_name=twitch_name))
-
-    #---------------------------------------------------------------------------------
-
-    @commands.command(
-        name='setactivity',
-        description='''Sets the bot\'s current activity and its details.
-        The Game activity requires [name], [type=0]
-        The Streaming activity requires [name], [type=1] and [url]
-        The Listening activity requires [name], [type=2]
-        The Watching activity requires [name], [type=3]''',
-        aliases=[]
-    )
-
-    @commands.is_owner()
-    async def set_activity(self, ctx: Context, name: str, type: int, url: str=None, details: str=None, state: str=None, application_id: int=None):
-        if 0 <= type <= 3:
-            await self.bot.change_presence(activity=discord.Activity(name=name, type=type, application_id=application_id, url=url, state=state, details=details))
-        else:
-            raise commands.BadArgument(f"There is no activity type {type}.")
-
-    #---------------------------------------------------------------------------------
-
-    @commands.command(
-        name='createguild',
-        description='Creates a guild. Bots cannot create guilds if they are already in at least 10 guilds.',
-        aliases=[]
-    )
-
-    @commands.is_owner()
-    async def createguild(self, ctx: Context, name: str, icon: bytes=None):
+    async def create_guild(self, ctx: Context, name: str, icon: discord.Attachment=None):
+        'Creates a guild. Bots cannot create guilds if they are already in at least 10 guilds.'
         try:
             guild = await self.bot.create_guild(name=name, icon=icon)
             await ctx.send(f"The guild `{name}` has been created, with id {guild.id}.")
         except:
             raise commands.CommandError(f"I can't make a new guild, because I am already in `{len(self.bot.guilds)}` guilds.")
 
+        # Send the user an invite to the new guild
         channel = await guild.create_text_channel("general")
         invite = await channel.create_invite()
         await ctx.send(f"Invite:\n{invite.url}")
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='gimmerole',
-        description='Gives a user a role in a guild the bot owns.',
-        aliases=[]
+    @commands.hybrid_command(name='gimmerole')
+    @app_commands.describe(
+        role = "The role to give out.",
+        member = "The member to give the role to."
     )
-
     @commands.is_owner()
-    async def gimme_role(self, ctx: Context, member: discord.Member, role: discord.Role):
-        await member.add_roles(role)
-        await ctx.send(f"Added role to {member.mention}: {role.mention}.")
+    async def gimme_role(self, ctx: Context, role: discord.Role, member: discord.Member=None):
+        'In a guild the bot has permission to give the role in, gives the role to a member.'
+        if member:
+            await member.add_roles(role)
+        else:
+            await ctx.author.add_roles(role)
+
+        await ctx.send(f"Added role to {member.discriminator}: {role.mention}.")
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='createadminrole',
-        description='Creates an admin role in a guild the bot owns.',
-        aliases=[]
-    )
-
+    @commands.hybrid_command(name='createadminrole')
     @commands.is_owner()
-    async def create_admin_role(self, ctx: Context, role: discord.Role):
+    async def create_admin_role(self, ctx: Context):
+        'Creates an admin role in a guild the bot owns.'
         guild = ctx.guild
         admin_role = await guild.create_role(name="Admin", permissions=discord.Permissions.all(), reason="Requested by bot owner.")
         await ctx.send(f"Created role {admin_role.mention}")
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='broadcast',
-        description=f'''Broadcasts a specific message a number of times to a specific channel.
-        Takes 3 arguments:
-                           channel [discord.TextChannel]- the channel you are sending this message to
-                           quantity [integer] - the number of times this message is to be sent (min: {min_messages}, max: {max_messages})
-                           message [string] - what you want the bot to send''',
-        aliases=['broad']
+    @commands.hybrid_command(name='bc')
+    @app_commands.describe(
+        channel_id = "The channel ID you are sending this message to (any channel the bot has access to).",
+        quantity = "The number of times to broadcast this message.",
+        message = "The message to broadcast."
     )
-
     @commands.is_owner()
     async def broadcast_command(self, ctx: Context, channel_id: int, quantity: int, *, message: str):
+        '''Broadcasts a specific message a number of times to a specific channel.'''
         channel = self.bot.get_channel(channel_id)
-        i = 0
-        msg = await ctx.send(f"Broadcasting '{message}' {quantity} times to Channel <#{channel.id}>, {ctx.message.author}.")
-        while i < quantity:
+        msg = await ctx.send(f"Broadcasting '{message}' {quantity} times to Channel <#{channel.id}>.")
+        for _ in range(quantity):
             await channel.send(message)
-            i += 1
         await msg.delete()
 
 
-    @commands.command(name='mess', aliases=['m'])
+    @commands.hybrid_command(name='mess')
+    @app_commands.describe(
+        arg = "Testing arg"
+    )
     @commands.is_owner()
     async def mess(self, ctx: Context, *, arg): #Command for testing
+        "Command for testing."
         with open('data.json', 'r') as file:
             all_data = json.load(file)
         all_data['guilds']['id'] = {}
@@ -171,10 +147,14 @@ class Godmode(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(name='eval', description='Evaluate and run python code')
+    @commands.hybrid_command(name='eval')
+    @app_commands.describe(
+        code = "The code to execute."
+    )
     @commands.is_owner()
     #https://stackoverflow.com/questions/44859165/async-exec-in-python
-    async def evaluate(self, ctx: Context, *, code):
+    async def evaluate(self, ctx: Context, *, code: str):
+        'Evaluate and run python code'
         try:
             # Make an async function with the code and `exec` it
             exec(
@@ -193,26 +173,18 @@ class Godmode(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='guildcount',
-        description='Returns the number of guilds I am a member of',
-        aliases=['servercount']
-    )
-
+    @commands.hybrid_command(name='guildcount')
     @commands.is_owner()
     async def guild_count(self, ctx: Context):
+        'Returns the number of guilds the bot is a member of.'
         await ctx.send(f"I am in `{len(self.bot.guilds)}`.")
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='guildlist',
-        description='Returns the list of guilds I am a member of',
-        aliases=['serverlist']
-    )
-
+    @commands.hybrid_command(name='guildlist')
     @commands.is_owner()
     async def guild_list(self, ctx: Context):
+        'Returns a list of guilds the bot is a member of.'
         guilds = ''
         for x in range(0, len(self.bot.guilds)):
             if guilds == '':
@@ -223,39 +195,32 @@ class Godmode(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='deleteguild',
-        description='Deletes one of the guilds the bot is an owner of',
-        aliases=[]
+    @commands.hybrid_command(name='deleteguild')
+    @app_commands.describe(
+        guild = "Guild ID of the guild to delete"
     )
-
     @commands.is_owner()
     async def del_guild(self, ctx: Context, guild: int):
+        'Deletes a guild the bot is an owner of'
         await self.bot.get_guild(guild).delete()
         await ctx.send(f"Deleted {guild}")
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name='quit',
-        description='Shuts down the bot.',
-		aliases=['exit']
-    )
-
+    @commands.hybrid_command(name='quit')
     @commands.is_owner()
     async def quit_command(self, ctx: Context):
+        'Shuts down the bot.'
         await ctx.send("Quitting...")
         await self.bot.close()
         sys.exit(0)
 
     #---------------------------------------------------------------------------------
 
-    @commands.command(
-        name="sync",
-        description="Syncs slash commands.",
-        aliases=[])
+    @commands.hybrid_command(name="sync")
     @commands.is_owner()
     async def _sync(self, ctx: Context, guilds: Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+        "Syncs slash commands."
         if not guilds:
             if spec == "~":
                 synced = await self.bot.tree.sync(guild=ctx.guild)
@@ -278,6 +243,7 @@ class Godmode(commands.Cog):
         for guild in guilds:
             await self.bot.tree.sync(guild=guild)
         await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Godmode(bot))
