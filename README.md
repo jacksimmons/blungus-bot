@@ -8,9 +8,6 @@ py -m venv .
 py -m ensurepip --default-pip
 py -m pip install -r requirements.txt
 
-To use voice commands, you'll also need to add FFmpeg to your path (provided in the repo):
-($RepoDir)ffmpeg/bin
-
 Run the bot server:  
 py main.py
 
