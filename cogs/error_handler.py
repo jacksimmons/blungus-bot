@@ -30,7 +30,7 @@ class CommandErrorHandler(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, err):
+    async def on_command_error(self, ctx: commands.Context, err: Exception):
         """The event triggered when an error is raised while invoking a command.
         ctx   : Context
         error : Exception"""
@@ -114,7 +114,7 @@ async def setup(bot):
 
 
 class ErrorHandlerView(discord.ui.View):
-    def __init__(self, error):
+    def __init__(self, error: Exception):
         super().__init__()
         self.error = error
     
@@ -122,4 +122,4 @@ class ErrorHandlerView(discord.ui.View):
     # Reference: https://gist.github.com/lykn/bac99b06d45ff8eed34c2220d86b6bf4
     async def view_full_err_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         button.style=discord.ButtonStyle.success
-        await interaction.response.send_message(content=str(self.error), view=self, ephemeral=True)
+        await interaction.response.send_message(content=f"```{"".join(traceback.format_exception(self.error))}```", view=self, ephemeral=True)

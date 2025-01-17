@@ -118,7 +118,7 @@ class Music(commands.Cog):
     #---------------------------------------------------------------------------------
 
     def after_song(self, ctx: commands.Context, e):
-        print("Player error % e", e) if e else None
+        print(f"Player error {e}", e) if e else None
         if len(self.queue) > 0:
             self.queue.pop(0)
             if len(self.queue) > 0:
@@ -206,7 +206,7 @@ class Music(commands.Cog):
     #---------------------------------------------------------------------------------
 
     @commands.hybrid_command(name="prev")
-    async def _prev(self, ctx):
+    async def _prev(self, ctx: commands.Context):
         """Adds the song which was just played to the queue."""
         await ctx.defer()
         if ctx.voice_client is not None:
@@ -228,14 +228,14 @@ class Music(commands.Cog):
     #---------------------------------------------------------------------------------
     
     @commands.hybrid_command(name="skip")
-    async def _skip(self, ctx):
+    async def _skip(self, ctx: commands.Context):
         """Skips the current song."""
         await ctx.defer()
         if ctx.voice_client is not None:
             if ctx.author.voice.channel == ctx.guild.me.voice.channel:
                 if ctx.voice_client.is_playing():
                     ctx.voice_client.stop()
-                    await ctx.send(f"Done. Remaining items in queue: {str(len(self.queue))}")
+                    await ctx.send(f"Done. Remaining items in queue: {str(len(self.queue)-1)}")
                 else:
                     raise commands.CommandError("No music is playing.")
             else:
@@ -248,8 +248,8 @@ class Music(commands.Cog):
     @commands.hybrid_command(name="stop")
     async def _stop(self, ctx):
         """Skips the current song and clears the queue."""
-        self.queue = []
         await self._skip(ctx)
+        self.queue = []
 
     #---------------------------------------------------------------------------------
 
