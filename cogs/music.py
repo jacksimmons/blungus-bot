@@ -148,7 +148,6 @@ class Music(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    # @todo Fix
     @commands.hybrid_command(name="play")
     @app_commands.describe(
         url_or_query="The url or search query to use."
@@ -184,7 +183,6 @@ class Music(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    # @todo Fix
     @commands.hybrid_command(name="localplay")
     @commands.is_owner()
     async def _local_play(self, ctx: commands.Context, *, path):
