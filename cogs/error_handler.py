@@ -6,6 +6,7 @@ import yt_dlp
 from discord import app_commands
 from discord.ext import commands
 
+
 """
 If you are not using this inside a cog, add the event decorator e.g:
 @bot.event
@@ -23,13 +24,13 @@ e.g: on_command_error(self, error, ctx)
 For a list of exceptions:
 http://discordpy.readthedocs.io/en/rewrite/ext/commands/api.html#errors
 """
-
 class CommandErrorHandler(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error):
+    async def on_command_error(self, ctx: commands.Context, err):
         """The event triggered when an error is raised while invoking a command.
         ctx   : Context
         error : Exception"""
@@ -48,7 +49,8 @@ class CommandErrorHandler(commands.Cog):
 
         # Allows us to check for original exceptions raised and sent to CommandInvokeError.
         # If nothing is found. We keep the exception passed to on_command_error.
-        error = getattr(error, 'original', error)
+        error = getattr(err, 'original', err)
+        error_msg = ""
 
         # Anything in ignored will return and prevent anything happening.
         if isinstance(error, ignored):
@@ -57,58 +59,67 @@ class CommandErrorHandler(commands.Cog):
         #-----------------------------------------------------------------------------
         # Default discord.py exceptions
         elif isinstance(error, discord.Forbidden):
-            try:
-                return await ctx.send(f'❗ {ctx.author.mention}, I am not permitted to do that.')
-            except:
-                print(f"{ctx.command}: No send message permissions.")
+            error_msg = f"❗ {ctx.author.mention}, I am not permitted to do that."
 
         elif isinstance(error, discord.HTTPException):
             if error.text == 'Invalid Form Body\nIn nick: Must be 32 or fewer in length.':
-                return await ctx.send(f'❗ {ctx.author.mention}, please enter a nickname between 0 and 32 characters inclusive.')
+                error_msg = f"❗ {ctx.author.mention}, please enter a nickname between 0 and 32 characters inclusive."
             else:
-                return await ctx.send(f'❗ {ctx.author.mention}, your request failed: `{error.text}`')
+                error_msg = f"❗ {ctx.author.mention}, your request failed: `{error.text}`"
 
         elif isinstance(error, commands.DisabledCommand):
-            return await ctx.send('❗ This command is disabled.')
+            error_msg = "❗ This command is disabled."
 
         elif isinstance(error, commands.NoPrivateMessage):
-            return await ctx.author.send(f'❗ {ctx.message.author.name}, `{ctx.command}` can not be used in Private Messages.')
+            error_msg = f"❗ {ctx.message.author.name}, `{ctx.command}` can not be used in Private Messages."
 
         # For this error example we check to see where it came from...
         elif isinstance(error, commands.BadArgument):
             if ctx.command.qualified_name == 'tags':
-                return await ctx.send('❗ I could not find that member. Please try again.')
-            return await ctx.send(f"❗ {ctx.author.mention}, `{ctx.command}` failed due to a bad argument: `{str(error.args)}`")
+                error_msg = "❗ I could not find that member. Please try again."
+            else:
+                error_msg = f"❗ {ctx.author.mention}, `{ctx.command}` failed due to a bad argument: `{str(error.args)}`"
 
         elif isinstance(error, commands.BotMissingPermissions):
-            return await ctx.send(f"❗ {ctx.author.mention}, I cannot do that: `{error.missing_perms}`")
+            error_msg = f"❗ {ctx.author.mention}, I cannot do that: `{error.missing_perms}`"
 
         elif isinstance(error, commands.MissingPermissions):
-            return await ctx.send(f"❗ {ctx.author.mention}, you need the following permissions to use this command: `{error.missing_perms}`")
+            error_msg = f"❗ {ctx.author.mention}, you need the following permissions to use this command: `{error.missing_perms}`"
 
         elif isinstance(error, commands.MissingRequiredArgument):
-            return await ctx.send(f"❗ {ctx.author.mention}, your request is missing the `{error.param}` argument.")
+            error_msg = f"❗ {ctx.author.mention}, your request is missing the `{error.param}` argument."
 
         elif isinstance(error, commands.ExpectedClosingQuoteError):
-            return await ctx.send(f"❗ {ctx.author.mention}, one of your arguments is missing a closing \".")
+            error_msg = f"❗ {ctx.author.mention}, one of your arguments is missing a closing \"."
 
         elif isinstance(error, commands.NotOwner):
-            return await ctx.send(f"❗ {ctx.author.mention}, you are not allowed to use this command.")
+            error_msg = f"❗ {ctx.author.mention}, you are not allowed to use this command."
         
-        elif isinstance(error, app_commands.CommandInvokeError):
-            if ctx.command.qualified_name in ["join", "play"]:
-                return await ctx.send("❗I am not permitted to join that voice channel.")
-            return await ctx.send(f"❗ {str(error)}")
-
-        elif isinstance(error, commands.CommandError):
-            return await ctx.send(f"❗ {str(error)}")
+        else:
+            error_msg = f"❗Command error: {str(error)}"
 
         #-----------------------------------------------------------------------------
         
-        # All other Errors not returned come here. And we can just print the default TraceBack.
-        else:
-            print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-            traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+        # # All other Errors not returned come here. And we can just print the default TraceBack.
+        # else:
+        #     print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
+        #     traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+
+        error_view = ErrorHandlerView(err)
+        await ctx.send(content=error_msg, view=error_view, ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(CommandErrorHandler(bot))
+
+
+class ErrorHandlerView(discord.ui.View):
+    def __init__(self, error):
+        super().__init__()
+        self.error = error
+    
+    @discord.ui.button(label="View full error", style=discord.ButtonStyle.grey)
+    # Reference: https://gist.github.com/lykn/bac99b06d45ff8eed34c2220d86b6bf4
+    async def view_full_err_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        button.style=discord.ButtonStyle.success
+        await interaction.response.send_message(content=str(self.error), view=self, ephemeral=True)

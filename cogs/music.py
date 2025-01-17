@@ -40,12 +40,6 @@ ytdl_format_options = {
 
 ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
 
-join_messages = [
-    "Will be there shortly comrade.",
-    "Coming",
-    "Ok"
-]
-
 #---------------------------------------------------------------------------------
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -132,22 +126,6 @@ class Music(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
-    @commands.hybrid_command(name="join")
-    async def _join(self, ctx: commands.Context):
-        """Joins your voice channel."""
-        await ctx.defer()
-        if ctx.author.voice is not None:
-            choice: str = random.choice(join_messages)
-            if ctx.voice_client is not None:
-                await ctx.voice_client.move_to(ctx.author.voice.channel)
-            else:
-                await ctx.author.voice.channel.connect()
-            await ctx.send(choice)
-        else:
-            await ctx.send("You aren't in a voice channel.")
-
-    #---------------------------------------------------------------------------------
-
     @commands.hybrid_command(name="queue")
     async def _queue(self, ctx: commands.Context,):
         """Displays the song queue."""
@@ -170,6 +148,7 @@ class Music(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
+    # @todo Fix
     @commands.hybrid_command(name="play")
     @app_commands.describe(
         url_or_query="The url or search query to use."
@@ -194,9 +173,9 @@ class Music(commands.Cog):
         else:
             send_str = "position"
             if len(players) > 1:
-                sendStr += f's {len(self.queue)-len(players)} to {len(self.queue)}'
+                send_str += f's {len(self.queue)-len(players)} to {len(self.queue)}'
             else:
-                sendStr += f' {len(self.queue)}'
+                send_str += f' {len(self.queue)}'
             embed.add_field(name="Added to queue, " + send_str, value=f"{self.prev.data.get('uploader')} - {self.prev.title}")
 
         embed.set_footer(text=str(datetime.timedelta(seconds=player.data.get('duration'))))
@@ -205,6 +184,7 @@ class Music(commands.Cog):
 
     #---------------------------------------------------------------------------------
 
+    # @todo Fix
     @commands.hybrid_command(name="localplay")
     @commands.is_owner()
     async def _local_play(self, ctx: commands.Context, *, path):
@@ -257,7 +237,7 @@ class Music(commands.Cog):
             if ctx.author.voice.channel == ctx.guild.me.voice.channel:
                 if ctx.voice_client.is_playing():
                     ctx.voice_client.stop()
-                    await ctx.send("**Skipped.**")
+                    await ctx.send(f"Done. Remaining items in queue: {str(len(self.queue))}")
                 else:
                     raise commands.CommandError("No music is playing.")
             else:
@@ -270,10 +250,8 @@ class Music(commands.Cog):
     @commands.hybrid_command(name="stop")
     async def _stop(self, ctx):
         """Skips the current song and clears the queue."""
-        await ctx.defer()
-        await self.skip(ctx)
         self.queue = []
-        await ctx.send("**Stopped.**")
+        await self._skip(ctx)
 
     #---------------------------------------------------------------------------------
 
@@ -356,7 +334,22 @@ class Music(commands.Cog):
                 raise commands.CommandError(f"Volume must be in range [{VOL_MIN}, {VOL_MAX}], inclusive.")
 
         else:
-            raise commands.CommandError("No trooling.")
+            await ctx.reply("You must be in my voice channel to do this.")
+
+    #---------------------------------------------------------------------------------
+
+    @commands.hybrid_command(name="join")
+    async def _join(self, ctx: commands.Context):
+        """Joins your voice channel."""
+        if ctx.author.voice is not None:
+            if ctx.voice_client is not None:
+                await ctx.voice_client.move_to(ctx.author.voice.channel)
+            else:
+                await ctx.author.voice.channel.connect()
+            
+            await ctx.send("I have come.")
+        else:
+            raise commands.CommandError("You aren't in a voice channel.")
 
     #---------------------------------------------------------------------------------
 
